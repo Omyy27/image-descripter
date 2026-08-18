@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Describir imagen con IA</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.4rem; color: #f8fafc; }
+    p.sub { color: #94a3b8; margin-bottom: 2rem; font-size: 0.95rem; }
+    .card {
+      width: 100%;
+      max-width: 640px;
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 1px solid #334155;
+    }
+    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem; }
+    .drop {
+      border: 2px dashed #475569;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 1.2rem;
+    }
+    .drop:hover, .drop.dragover { border-color: #38bdf8; background: #0f172a; }
+    .drop img {
+      max-width: 100%;
+      max-height: 260px;
+      border-radius: 8px;
+      display: none;
+      margin-top: 0.8rem;
+    }
+    textarea {
+      width: 100%;
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 0.8rem;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 90px;
+      font-family: inherit;
+    }
+    textarea:focus, input:focus { outline: 2px solid #38bdf8; border-color: transparent; }
+    button {
+      width: 100%;
+      margin-top: 1.2rem;
+      padding: 0.85rem;
+      background: #0284c7;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover:not(:disabled) { background: #0369a1; }
+    button:disabled { background: #475569; cursor: not-allowed; }
+    .result {
+      margin-top: 1.5rem;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1rem;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      display: none;
+    }
+    .result.show { display: block; }
+    .error { border-color: #ef4444 !important; color: #fca5a5; }
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    button.loading .spinner { display: inline-block; }
+    button.loading span.label { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Describir imagen con IA</h1>
+  <p class="sub">Sube una imagen y dale contexto para obtener una descripción a medida.</p>
+
+  <div class="card">
+    <form id="form">
+      <label for="file">Imagen</label>
+      <div class="drop" id="drop">
+        <input type="file" id="file" accept="image/*" style="display:none">
+        <div id="drop-text">Haz clic o arrastra una imagen aquí</div>
+        <img id="preview" alt="Vista previa">
+      </div>
+
+      <label for="context">Contexto (opcional)</label>
+      <textarea id="context" name="context" placeholder="Ej: Describe este producto para una tienda online, destacando sus colores y qué sensación transmite."></textarea>
+
+      <button type="submit" id="btn">
+        <span class="spinner"></span>
+        <span class="label">Describir imagen</span>
+      </button>
+    </form>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    const drop = document.getElementById('drop');
+    const fileInput = document.getElementById('file');
+    const preview = document.getElementById('preview');
+    const dropText = document.getElementById('drop-text');
+    const form = document.getElementById('form');
+    const btn = document.getElementById('btn');
+    const resultBox = document.getElementById('result');
+
+    drop.addEventListener('click', () => fileInput.click());
+    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+      if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) setFile(fileInput.files[0]);
+    });
+
+    function setFile(file) {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        preview.src = reader.result;
+        preview.style.display = 'block';
+        dropText.textContent = file.name;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!fileInput.files.length) {
+        resultBox.className = 'result show error';
+        resultBox.textContent = 'Selecciona una imagen primero.';
+        return;
+      }
+      const fd = new FormData();
+      fd.append('image', fileInput.files[0]);
+      fd.append('context', document.getElementById('context').value);
+
+      btn.disabled = true;
+      btn.classList.add('loading');
+      resultBox.className = 'result';
+      resultBox.textContent = 'Generando descripción...';
+
+      try {
+        const res = await fetch('/describe', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error del servidor');
+        resultBox.className = 'result show';
+        resultBox.textContent = data.description;
+      } catch (err) {
+        resultBox.className = 'result show error';
+        resultBox.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+      }
+    });
+  </script>
+</body>
+</html>
