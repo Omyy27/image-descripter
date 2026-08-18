@@ -1,44 +1,16 @@
-# Describir imagen con IA
+# Describir imagen con IA (WebGPU)
 
-Mini app web que recibe una imagen y un texto de contexto, y devuelve una descripción generada por un modelo de visión local (Ollama). Sin API keys ni costos.
+Mini app web que recibe una imagen y un texto de contexto, y genera una descripción
+**en tu navegador** usando WebGPU con el modelo de visión **SmolVLM-256M** (Transformers.js).
+No hay inferencia en el servidor: la imagen nunca sale de tu equipo.
 
 ## Requisitos
 
-- Linux (x86_64)
-- Python 3.10+
-- ~4 GB de RAM libre (modelo `qwen2.5vl:3b`)
+- Navegador con WebGPU: Chrome/Edge 113+ (recomendado), Firefox 141+, Safari 26+.
+- Python 3.10+ (solo para servir la página estática).
+- GPU con WebGPU (opcional): si no hay, el modelo corre en CPU (WASM), más lento.
 
 ## Instalación
-
-### 1. Ollama
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-```
-
-> Si no tienes `sudo` disponible, descarga el binario desde
-> https://github.com/ollama/ollama/releases y extráelo en tu carpeta de usuario:
-
-```bash
-mkdir -p ~/.local/ollama
-curl -fsSL -o /tmp/ollama.tar.zst https://github.com/ollama/ollama/releases/download/v0.32.14/ollama-linux-amd64.tar.zst
-# extraer requiere el paquete `zstandard`: pip install zstandard
-export PATH="$HOME/.local/ollama/bin:$PATH"
-```
-
-Inicia el servidor de Ollama (mantenlo corriendo):
-
-```bash
-ollama serve
-```
-
-Descarga el modelo de visión (solo la primera vez):
-
-```bash
-ollama pull qwen2.5vl:3b
-```
-
-### 2. Dependencias de Python
 
 ```bash
 python3 -m venv .venv
@@ -51,20 +23,35 @@ python3 -m venv .venv
 .venv/bin/python app.py
 ```
 
-Abre http://localhost:5000, sube una imagen, escribe un contexto y pulsa **Describir imagen**.
+Abre **http://localhost:5000** (debe ser `localhost`, no la IP de WSL, porque WebGPU
+requiere un contexto seguro).
 
-## Configuración
+1. Pulsa **Cargar modelo** (primera vez descarga ~400 MB, luego queda cacheado en el navegador).
+2. Sube una imagen, escribe el contexto y pulsa **Describir imagen**.
 
-Puedes cambiar el modelo editando `DEFAULT_MODEL` en `ollama_client.py`
-(por ejemplo `llava`, `llama3.2-vision` o `qwen2.5vl`).
+> El modelo SmolVLM-256M entiende mejor el inglés; escribe el contexto en inglés para
+> mejores resultados.
+
+## Cambiar de versión (Ollama)
+
+Este proyecto guarda dos versiones en dos ramas de git:
+
+| Rama      | Descripción                                             |
+|-----------|---------------------------------------------------------|
+| `main`    | Versión anterior: Flask + Ollama (modelo local en el servidor). |
+| `webgpu`  | Versión actual: todo en el navegador con WebGPU.        |
+
+```bash
+git checkout main     # versión Ollama
+git checkout webgpu   # versión WebGPU
+```
 
 ## Estructura
 
 ```
 read-image-ai/
-├── app.py                 # Servidor Flask + endpoints
-├── ollama_client.py       # Cliente de la API local de Ollama
+├── app.py                 # Flask: solo sirve la página web
 ├── templates/
-│   └── index.html         # Interfaz web
+│   └── index.html         # UI + lógica WebGPU (SmolVLM-256M)
 └── requirements.txt
 ```

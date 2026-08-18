@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Describir imagen con IA</title>
+  <title>Describir imagen con IA (WebGPU)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -16,8 +16,8 @@
       align-items: center;
       padding: 2rem 1rem;
     }
-    h1 { font-size: 1.6rem; margin-bottom: 0.4rem; color: #f8fafc; }
-    p.sub { color: #94a3b8; margin-bottom: 2rem; font-size: 0.95rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.3rem; color: #f8fafc; }
+    p.sub { color: #94a3b8; margin-bottom: 1.6rem; font-size: 0.95rem; text-align: center; }
     .card {
       width: 100%;
       max-width: 640px;
@@ -26,72 +26,62 @@
       padding: 1.5rem;
       border: 1px solid #334155;
     }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 1rem;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; flex: 0 0 auto; }
+    .dot.ok { background: #22c55e; }
+    .dot.bad { background: #ef4444; }
+    .dot.loading { background: #f59e0b; }
+    .bar-wrap {
+      height: 8px; background: #0f172a; border-radius: 6px; overflow: hidden;
+      margin: 0.6rem 0 1rem; display: none;
+    }
+    .bar-wrap.show { display: block; }
+    .bar { height: 100%; width: 0%; background: #38bdf8; transition: width 0.2s; }
     label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem; }
     .drop {
-      border: 2px dashed #475569;
-      border-radius: 12px;
-      padding: 1.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
+      border: 2px dashed #475569; border-radius: 12px; padding: 1.5rem;
+      text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;
       margin-bottom: 1.2rem;
     }
     .drop:hover, .drop.dragover { border-color: #38bdf8; background: #0f172a; }
-    .drop img {
-      max-width: 100%;
-      max-height: 260px;
-      border-radius: 8px;
-      display: none;
-      margin-top: 0.8rem;
-    }
+    .drop img { max-width: 100%; max-height: 260px; border-radius: 8px; display: none; margin-top: 0.8rem; }
     textarea {
-      width: 100%;
-      background: #0f172a;
-      color: #e2e8f0;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      padding: 0.8rem;
-      font-size: 0.95rem;
-      resize: vertical;
-      min-height: 90px;
-      font-family: inherit;
+      width: 100%; background: #0f172a; color: #e2e8f0; border: 1px solid #334155;
+      border-radius: 10px; padding: 0.8rem; font-size: 0.95rem; resize: vertical;
+      min-height: 90px; font-family: inherit;
     }
-    textarea:focus, input:focus { outline: 2px solid #38bdf8; border-color: transparent; }
+    textarea:focus { outline: 2px solid #38bdf8; border-color: transparent; }
     button {
-      width: 100%;
-      margin-top: 1.2rem;
-      padding: 0.85rem;
-      background: #0284c7;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
+      width: 100%; margin-top: 1rem; padding: 0.85rem; color: white;
+      border: none; border-radius: 10px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
     }
-    button:hover:not(:disabled) { background: #0369a1; }
+    .btn-load { background: #334155; }
+    .btn-load:hover:not(:disabled) { background: #475569; }
+    .btn-go { background: #0284c7; }
+    .btn-go:hover:not(:disabled) { background: #0369a1; }
     button:disabled { background: #475569; cursor: not-allowed; }
     .result {
-      margin-top: 1.5rem;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 1rem;
-      white-space: pre-wrap;
-      line-height: 1.6;
+      margin-top: 1.5rem; background: #0f172a; border: 1px solid #334155;
+      border-radius: 12px; padding: 1rem; white-space: pre-wrap; line-height: 1.6;
       display: none;
     }
     .result.show { display: block; }
-    .error { border-color: #ef4444 !important; color: #fca5a5; }
+    .result.error { border-color: #ef4444; color: #fca5a5; }
+    .note {
+      margin-top: 1rem; font-size: 0.78rem; color: #64748b; line-height: 1.5;
+    }
     .spinner {
-      display: none;
-      width: 18px; height: 18px;
-      border: 3px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto;
+      display: none; width: 18px; height: 18px;
+      border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
+      border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     button.loading .spinner { display: inline-block; }
@@ -100,38 +90,153 @@
 </head>
 <body>
   <h1>Describir imagen con IA</h1>
-  <p class="sub">Sube una imagen y dale contexto para obtener una descripción a medida.</p>
+  <p class="sub">Todo corre en tu navegador con WebGPU. La imagen nunca sale de tu equipo.</p>
 
   <div class="card">
-    <form id="form">
-      <label for="file">Imagen</label>
-      <div class="drop" id="drop">
-        <input type="file" id="file" accept="image/*" style="display:none">
-        <div id="drop-text">Haz clic o arrastra una imagen aquí</div>
-        <img id="preview" alt="Vista previa">
-      </div>
+    <div class="status">
+      <span class="dot" id="dot"></span>
+      <span id="status-text">Comprobando WebGPU…</span>
+    </div>
 
-      <label for="context">Contexto (opcional)</label>
-      <textarea id="context" name="context" placeholder="Ej: Describe este producto para una tienda online, destacando sus colores y qué sensación transmite."></textarea>
+    <div class="bar-wrap" id="bar-wrap">
+      <div class="bar" id="bar"></div>
+    </div>
 
-      <button type="submit" id="btn">
-        <span class="spinner"></span>
-        <span class="label">Describir imagen</span>
-      </button>
-    </form>
+    <button class="btn-load" type="button" id="btn-load">
+      <span class="spinner"></span>
+      <span class="label">Cargar modelo (SmolVLM-256M)</span>
+    </button>
+
+    <div style="height:1.4rem"></div>
+
+    <label for="file">Imagen</label>
+    <div class="drop" id="drop">
+      <input type="file" id="file" accept="image/*" style="display:none">
+      <div id="drop-text">Haz clic o arrastra una imagen aquí</div>
+      <img id="preview" alt="Vista previa">
+    </div>
+
+    <label for="context">Contexto (opcional)</label>
+    <textarea id="context" name="context" placeholder="Ej: describe este producto para una tienda online, destacando colores y qué sensación transmite."></textarea>
+
+    <button class="btn-go" type="button" id="btn-go" disabled>
+      <span class="spinner"></span>
+      <span class="label">Describir imagen</span>
+    </button>
 
     <div class="result" id="result"></div>
+
+    <p class="note">Nota: el modelo SmolVLM-256M entiende mejor el inglés. Para resultados óptimos escribe el contexto en inglés. La primera vez que cargues el modelo se descargan ~400 MB (solo una vez, se guardan en el navegador).</p>
   </div>
 
-  <script>
+  <script type="module">
+    import { AutoProcessor, SmolVLMForConditionalGeneration } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5';
+
+    const MODEL = 'HuggingFaceTB/SmolVLM-256M-Instruct';
+
+    let processor = null;
+    let model = null;
+    let device = 'wasm';
+
+    const dot = document.getElementById('dot');
+    const statusText = document.getElementById('status-text');
+    const barWrap = document.getElementById('bar-wrap');
+    const bar = document.getElementById('bar');
+    const btnLoad = document.getElementById('btn-load');
+    const btnGo = document.getElementById('btn-go');
     const drop = document.getElementById('drop');
     const fileInput = document.getElementById('file');
     const preview = document.getElementById('preview');
     const dropText = document.getElementById('drop-text');
-    const form = document.getElementById('form');
-    const btn = document.getElementById('btn');
+    const contextEl = document.getElementById('context');
     const resultBox = document.getElementById('result');
 
+    function setStatus(text, cls) {
+      statusText.textContent = text;
+      dot.className = 'dot' + (cls ? ' ' + cls : '');
+    }
+
+    async function detectWebGPU() {
+      if (!('gpu' in navigator)) return null;
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) return null;
+        const info = adapter.info || {};
+        const name = [info.vendor, info.architecture, info.description].filter(Boolean).join(' ').trim();
+        return name || 'WebGPU';
+      } catch {
+        return null;
+      }
+    }
+
+    async function loadModel() {
+      btnLoad.disabled = true;
+      btnLoad.classList.add('loading');
+      barWrap.classList.add('show');
+      bar.style.width = '0%';
+      setStatus('Descargando modelo…', 'loading');
+
+      const opts = {
+        device,
+        dtype: device === 'webgpu' ? 'q4f16' : 'q4',
+        progress_callback: ({ progress, loaded, total }) => {
+          bar.style.width = Math.min(100, Math.round(progress)) + '%';
+          const mb = total ? (loaded / (1024 * 1024)).toFixed(0) + ' / ' + (total / (1024 * 1024)).toFixed(0) + ' MB' : '';
+          setStatus('Descargando modelo… ' + mb, 'loading');
+        },
+      };
+
+      try {
+        processor = await AutoProcessor.from_pretrained(MODEL, opts);
+        model = await SmolVLMForConditionalGeneration.from_pretrained(MODEL, opts);
+        btnGo.disabled = false;
+        setStatus('Modelo listo (' + device + ') — ' + MODEL, 'ok');
+      } catch (err) {
+        setStatus('Error al cargar el modelo', 'bad');
+        resultBox.className = 'result show error';
+        resultBox.textContent = 'Error: ' + err.message;
+      } finally {
+        btnLoad.disabled = false;
+        btnLoad.classList.remove('loading');
+        setTimeout(() => barWrap.classList.remove('show'), 500);
+      }
+    }
+
+    async function describe() {
+      if (!processor || !model) return;
+      const file = fileInput.files[0];
+      if (!file) {
+        resultBox.className = 'result show error';
+        resultBox.textContent = 'Selecciona una imagen primero.';
+        return;
+      }
+      const context = contextEl.value.trim() || 'Describe this image in detail.';
+
+      btnGo.disabled = true;
+      btnGo.classList.add('loading');
+      resultBox.className = 'result';
+      resultBox.textContent = 'Generando descripción…';
+
+      try {
+        const img = await createImageBitmap(file);
+        const messages = [{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: context }] }];
+        const prompt = processor.apply_chat_template(messages, { add_generation_prompt: true });
+        const inputs = await processor(prompt, [img]);
+        const output = await model.generate({ ...inputs, max_new_tokens: 200 });
+        const text = processor.batch_decode(output, { skip_special_tokens: true })[0];
+        resultBox.className = 'result show';
+        resultBox.textContent = text.trim();
+        img.close();
+      } catch (err) {
+        resultBox.className = 'result show error';
+        resultBox.textContent = 'Error: ' + err.message;
+      } finally {
+        btnGo.disabled = false;
+        btnGo.classList.remove('loading');
+      }
+    }
+
+    // --- UI events ---
     drop.addEventListener('click', () => fileInput.click());
     drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
     drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
@@ -143,7 +248,6 @@
     fileInput.addEventListener('change', () => {
       if (fileInput.files.length) setFile(fileInput.files[0]);
     });
-
     function setFile(file) {
       if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
@@ -154,37 +258,19 @@
       };
       reader.readAsDataURL(file);
     }
+    btnLoad.addEventListener('click', loadModel);
+    btnGo.addEventListener('click', describe);
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!fileInput.files.length) {
-        resultBox.className = 'result show error';
-        resultBox.textContent = 'Selecciona una imagen primero.';
-        return;
+    (async () => {
+      const name = await detectWebGPU();
+      if (name) {
+        device = 'webgpu';
+        setStatus('WebGPU disponible: ' + name, 'ok');
+      } else {
+        device = 'wasm';
+        setStatus('WebGPU no disponible — se usará CPU (WASM). Más lento.', 'bad');
       }
-      const fd = new FormData();
-      fd.append('image', fileInput.files[0]);
-      fd.append('context', document.getElementById('context').value);
-
-      btn.disabled = true;
-      btn.classList.add('loading');
-      resultBox.className = 'result';
-      resultBox.textContent = 'Generando descripción...';
-
-      try {
-        const res = await fetch('/describe', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error del servidor');
-        resultBox.className = 'result show';
-        resultBox.textContent = data.description;
-      } catch (err) {
-        resultBox.className = 'result show error';
-        resultBox.textContent = 'Error: ' + err.message;
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove('loading');
-      }
-    });
+    })();
   </script>
 </body>
 </html>
