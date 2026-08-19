@@ -48,6 +48,19 @@ python3 -m venv .venv
 
 ## Uso
 
+### Ejecución fácil (WSL2 + Windows)
+
+Si trabajas en WSL2 y abres la app desde el navegador de Windows:
+
+- **Doble clic** en `start.bat` (desde Windows) → arranca Ollama si hace falta,
+  descarga el modelo si no está, levanta la app y abre el navegador automáticamente.
+- O directamente en WSL2: `./run.sh`
+
+El proyecto debe estar en `~/agentic/read-image-ai` (la ruta que usa `start.bat`).
+El script es idempotente: si la app u Ollama ya están corriendo, no los duplica.
+
+### Manual
+
 ```bash
 .venv/bin/python app.py
 ```
@@ -71,5 +84,7 @@ read-image-ai/
 ├── ollama_client.py       # Cliente de la API local de Ollama
 ├── templates/
 │   └── index.html         # Interfaz web
+├── run.sh                 # Lanzador WSL2 (arranca Ollama, modelo y app)
+├── start.bat              # Doble clic desde Windows (llama a run.sh y abre el navegador)
 └── requirements.txt
 ```
