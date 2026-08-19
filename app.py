@@ -1,15 +1,23 @@
 import base64
 import io
+import os
+import sys
 
 from flask import Flask, jsonify, render_template, request
 from PIL import Image
 
 from ollama_client import AVAILABLE_MODELS, DEFAULT_MODEL, describe_image
 
-app = Flask(__name__)
+if getattr(sys, "frozen", False):
+    BASE_DIR = sys._MEIPASS
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
 app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024
 
 MAX_IMAGE_SIZE = 1280
+APP_HOST = os.environ.get("APP_HOST", "0.0.0.0")
 
 
 def prepare_image(raw: bytes) -> str:
@@ -56,4 +64,4 @@ def describe():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host=APP_HOST, port=5000, debug=False)
