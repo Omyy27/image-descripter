@@ -130,7 +130,7 @@
   </div>
 
   <script type="module">
-    import { AutoProcessor, SmolVLMForConditionalGeneration } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5';
+    import { AutoProcessor, SmolVLMForConditionalGeneration, RawImage } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5';
 
     const MODEL = 'HuggingFaceTB/SmolVLM-256M-Instruct';
 
@@ -194,7 +194,7 @@
       } catch (err) {
         setStatus('Error al cargar el modelo', 'bad');
         resultBox.className = 'result show error';
-        resultBox.textContent = 'Error: ' + err.message;
+        resultBox.textContent = 'Error al cargar el modelo: ' + (err?.message || err) + '\n\n' + (err?.stack || '');
       } finally {
         btnLoad.disabled = false;
         btnLoad.classList.remove('loading');
@@ -218,18 +218,24 @@
       resultBox.textContent = 'Generando descripción…';
 
       try {
-        const img = await createImageBitmap(file);
+        const img = await RawImage.fromBlob(file);
         const messages = [{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: context }] }];
         const prompt = processor.apply_chat_template(messages, { add_generation_prompt: true });
-        const inputs = await processor(prompt, [img]);
-        const output = await model.generate({ ...inputs, max_new_tokens: 200 });
-        const text = processor.batch_decode(output, { skip_special_tokens: true })[0];
+        const inputs = await processor(prompt, [img], {});
+        const output = await model.generate({
+          ...inputs,
+          do_sample: false,
+          repetition_penalty: 1.1,
+          max_new_tokens: 200,
+          return_dict_in_generate: true,
+        });
+        const text = processor.batch_decode(output.sequences, { skip_special_tokens: true })[0];
         resultBox.className = 'result show';
         resultBox.textContent = text.trim();
-        img.close();
+        img.dispose?.();
       } catch (err) {
         resultBox.className = 'result show error';
-        resultBox.textContent = 'Error: ' + err.message;
+        resultBox.textContent = 'Error durante la generación: ' + (err?.message || err) + '\n\n' + (err?.stack || '');
       } finally {
         btnGo.disabled = false;
         btnGo.classList.remove('loading');
