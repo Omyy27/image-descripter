@@ -1,12 +1,13 @@
 import base64
 import io
 import os
+import subprocess
 import sys
 
 from flask import Flask, jsonify, render_template, request
 from PIL import Image
 
-from ollama_client import AVAILABLE_MODELS, DEFAULT_MODEL, describe_image
+from ollama_client import AVAILABLE_MODELS, DEFAULT_MODEL, describe_image, warm_model
 
 if getattr(sys, "frozen", False):
     BASE_DIR = sys._MEIPASS
@@ -18,6 +19,22 @@ app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024
 
 MAX_IMAGE_SIZE = 1280
 APP_HOST = os.environ.get("APP_HOST", "0.0.0.0")
+
+
+def _is_windows():
+    return sys.platform.startswith("win")
+
+
+def _detach(cmd):
+    kwargs = {
+        "shell": True,
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+    }
+    if not _is_windows():
+        kwargs["start_new_session"] = True
+    return subprocess.Popen(cmd, **kwargs)
 
 
 def prepare_image(raw: bytes) -> str:
@@ -61,6 +78,60 @@ def describe():
     except Exception as exc:
         app.logger.exception("Error generando la descripción")
         return jsonify({"error": f"Error generando la descripción: {exc}"}), 500
+
+
+@app.route("/api/reload-model", methods=["POST"])
+def reload_model():
+    model = (request.form.get("model") or "").strip()
+    if model not in AVAILABLE_MODELS:
+        model = DEFAULT_MODEL
+    try:
+        warm_model(model)
+        return jsonify({"ok": True, "message": f"Modelo {model} pre-cargado en memoria."})
+    except Exception as exc:
+        app.logger.exception("Error pre-cargando el modelo")
+        return jsonify({"ok": False, "error": f"Error pre-cargando el modelo: {exc}"}), 500
+
+
+@app.route("/api/restart", methods=["POST"])
+def restart_server():
+    pid = os.getpid()
+    if _is_windows():
+        if getattr(sys, "frozen", False):
+            target = sys.executable
+            args = ""
+        else:
+            target = sys.executable
+            args = f" -ArgumentList '{os.path.abspath(__file__)}'"
+        cmd = (
+            "powershell -NoProfile -Command "
+            f"\"Start-Sleep -Seconds 1; Stop-Process -Id {pid} -Force; "
+            f"Start-Process -FilePath '{target}'{args}\""
+        )
+    else:
+        log = os.path.join(BASE_DIR, ".logs", "app.log")
+        os.makedirs(os.path.join(BASE_DIR, ".logs"), exist_ok=True)
+        cmd = (
+            f"bash -c 'sleep 1; kill {pid} 2>/dev/null || true; sleep 1; "
+            f"cd {BASE_DIR!r} && setsid nohup .venv/bin/python app.py "
+            f">> {log!r} 2>&1 &'"
+        )
+    _detach(cmd)
+    return jsonify({"ok": True, "message": "Reiniciando el servidor…"}), 200
+
+
+@app.route("/api/stop", methods=["POST"])
+def stop_server():
+    pid = os.getpid()
+    if _is_windows():
+        cmd = (
+            "powershell -NoProfile -Command "
+            f"\"Start-Sleep -Seconds 1; Stop-Process -Id {pid} -Force\""
+        )
+    else:
+        cmd = f"bash -c 'sleep 1; kill {pid} 2>/dev/null || true'"
+    _detach(cmd)
+    return jsonify({"ok": True, "message": "Deteniendo la app…"}), 200
 
 
 if __name__ == "__main__":

@@ -83,6 +83,21 @@
     }
     button:hover:not(:disabled) { background: #0369a1; }
     button:disabled { background: #475569; cursor: not-allowed; }
+    .controls { margin-top: 1.6rem; border-top: 1px solid #334155; padding-top: 1rem; }
+    .controls h3 { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.6rem; font-weight: 600; }
+    .btn-row { display: flex; gap: 0.6rem; }
+    .btn-row button {
+      flex: 1;
+      margin-top: 0;
+      padding: 0.6rem 0.4rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      background: #334155;
+    }
+    .btn-row button:hover:not(:disabled) { background: #475569; }
+    .btn-row button.danger { background: #7f1d1d; }
+    .btn-row button.danger:hover:not(:disabled) { background: #991b1b; }
+    .ctrl-status { margin-top: 0.7rem; font-size: 0.82rem; color: #94a3b8; min-height: 1em; }
     .result {
       margin-top: 1.5rem;
       background: #0f172a;
@@ -138,6 +153,16 @@
     </form>
 
     <div class="result" id="result"></div>
+
+    <div class="controls">
+      <h3>Controles del servidor</h3>
+      <div class="btn-row">
+        <button type="button" id="btn-reload">Recargar modelo</button>
+        <button type="button" id="btn-restart">Reiniciar servidor</button>
+        <button type="button" id="btn-stop" class="danger">Detener procesos</button>
+      </div>
+      <div class="ctrl-status" id="ctrl-status"></div>
+    </div>
   </div>
 
   <script>
@@ -201,6 +226,54 @@
       } finally {
         btn.disabled = false;
         btn.classList.remove('loading');
+      }
+    });
+
+    // --- Controles del servidor ---
+    const ctrlStatus = document.getElementById('ctrl-status');
+
+    function ctrlMsg(text, isError) {
+      ctrlStatus.textContent = text;
+      ctrlStatus.style.color = isError ? '#fca5a5' : '#94a3b8';
+    }
+
+    async function postCtrl(url, body) {
+      const res = await fetch(url, { method: 'POST', body });
+      return res.json();
+    }
+
+    document.getElementById('btn-reload').addEventListener('click', async () => {
+      const model = document.getElementById('model').value;
+      ctrlMsg('Pre-cargando ' + model + '…');
+      try {
+        const fd = new FormData();
+        fd.append('model', model);
+        const data = await postCtrl('/api/reload-model', fd);
+        ctrlMsg(data.ok ? data.message : ('Error: ' + (data.error || 'desconocido')), !data.ok);
+      } catch (err) {
+        ctrlMsg('Error: ' + err.message, true);
+      }
+    });
+
+    document.getElementById('btn-restart').addEventListener('click', async () => {
+      if (!confirm('¿Reiniciar el servidor? La página se recargará en unos segundos.')) return;
+      ctrlMsg('Reiniciando el servidor…');
+      try {
+        await postCtrl('/api/restart');
+        setTimeout(() => { location.reload(); }, 4500);
+      } catch (err) {
+        ctrlMsg('Error: ' + err.message, true);
+      }
+    });
+
+    document.getElementById('btn-stop').addEventListener('click', async () => {
+      if (!confirm('¿Detener la app? Ollama seguirá corriendo. Para volver a usarla, relánzala con run.sh / start_windows.bat.')) return;
+      ctrlMsg('Deteniendo la app…');
+      try {
+        await postCtrl('/api/stop');
+        ctrlMsg('App detenida. Relanza con run.sh / start_windows.bat para volver a usarla.');
+      } catch (err) {
+        ctrlMsg('Error: ' + err.message, true);
       }
     });
   </script>

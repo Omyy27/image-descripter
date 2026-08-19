@@ -22,3 +22,16 @@ def describe_image(image_base64, prompt, model=DEFAULT_MODEL, timeout=300):
     resp.raise_for_status()
     data = resp.json()
     return data.get("response", "").strip()
+
+
+def warm_model(model, keep_alive="30m", timeout=120):
+    payload = {
+        "model": model,
+        "prompt": "Describe.",
+        "stream": False,
+        "keep_alive": keep_alive,
+        "options": {"num_predict": 1},
+    }
+    resp = requests.post(OLLAMA_URL, json=payload, timeout=timeout)
+    resp.raise_for_status()
+    return True
