@@ -104,7 +104,7 @@
 
     <button class="btn-load" type="button" id="btn-load">
       <span class="spinner"></span>
-      <span class="label">Cargar modelo (SmolVLM-256M)</span>
+      <span class="label">Cargar modelo (SmolVLM-500M)</span>
     </button>
 
     <div style="height:1.4rem"></div>
@@ -126,13 +126,13 @@
 
     <div class="result" id="result"></div>
 
-    <p class="note">Nota: el modelo SmolVLM-256M entiende mejor el inglés. Para resultados óptimos escribe el contexto en inglés. La primera vez que cargues el modelo se descargan ~400 MB (solo una vez, se guardan en el navegador).</p>
+    <p class="note">Nota: el modelo SmolVLM-500M entiende mejor el inglés. Para resultados óptimos escribe el contexto en inglés. La primera vez que cargues el modelo se descargan ~340 MB (solo una vez, se guardan en el navegador).</p>
   </div>
 
   <script type="module">
     import { AutoProcessor, SmolVLMForConditionalGeneration, RawImage } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5';
 
-    const MODEL = 'HuggingFaceTB/SmolVLM-256M-Instruct';
+    const MODEL = 'HuggingFaceTB/SmolVLM-500M-Instruct';
 
     let processor = null;
     let model = null;
@@ -226,7 +226,7 @@
           ...inputs,
           do_sample: false,
           repetition_penalty: 1.1,
-          max_new_tokens: 200,
+          max_new_tokens: 300,
           return_dict_in_generate: true,
         });
         const text = processor.batch_decode(output.sequences, { skip_special_tokens: true })[0];
