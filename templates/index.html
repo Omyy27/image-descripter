@@ -104,7 +104,7 @@
 
     <button class="btn-load" type="button" id="btn-load">
       <span class="spinner"></span>
-      <span class="label">Cargar modelo (SmolVLM-500M)</span>
+      <span class="label">Cargar modelo (Qwen2-VL-2B)</span>
     </button>
 
     <div style="height:1.4rem"></div>
@@ -126,13 +126,13 @@
 
     <div class="result" id="result"></div>
 
-    <p class="note">Nota: el modelo SmolVLM-500M entiende mejor el inglés. Para resultados óptimos escribe el contexto en inglés. La primera vez que cargues el modelo se descargan ~340 MB (solo una vez, se guardan en el navegador).</p>
+    <p class="note">Nota: el modelo Qwen2-VL-2B responde bien en inglés y español. La primera vez que cargues el modelo se descargan ~2.5 GB (solo una vez, se guardan en el navegador). Usa memoria unificada de la GPU: puede ir algo más lento que SmolVLM-500M.</p>
   </div>
 
   <script type="module">
     import { AutoProcessor, SmolVLMForConditionalGeneration, RawImage } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5';
 
-    const MODEL = 'HuggingFaceTB/SmolVLM-500M-Instruct';
+    const MODEL = 'onnx-community/Qwen2-VL-2B-Instruct';
 
     let processor = null;
     let model = null;
