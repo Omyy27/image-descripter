@@ -4,7 +4,7 @@ import io
 from flask import Flask, jsonify, render_template, request
 from PIL import Image
 
-from ollama_client import DEFAULT_MODEL, describe_image
+from ollama_client import AVAILABLE_MODELS, DEFAULT_MODEL, describe_image
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024
@@ -40,9 +40,13 @@ def describe():
     if not context:
         context = "Describe esta imagen en detalle."
 
+    model = (request.form.get("model") or "").strip()
+    if model not in AVAILABLE_MODELS:
+        model = DEFAULT_MODEL
+
     try:
         image_b64 = prepare_image(file.read())
-        description = describe_image(image_b64, context)
+        description = describe_image(image_b64, context, model=model)
         if not description:
             return jsonify({"error": "El modelo no devolvió una descripción."}), 500
         return jsonify({"description": description})

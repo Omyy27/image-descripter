@@ -32,10 +32,11 @@ Inicia el servidor de Ollama (mantenlo corriendo):
 ollama serve
 ```
 
-Descarga el modelo de visión (solo la primera vez):
+Descarga los modelos de visión (solo la primera vez):
 
 ```bash
-ollama pull qwen2.5vl:3b
+ollama pull qwen2.5vl:3b   # mejor calidad
+ollama pull gemma3:4b      # ligero
 ```
 
 ### 2. Dependencias de Python
@@ -51,12 +52,16 @@ python3 -m venv .venv
 .venv/bin/python app.py
 ```
 
-Abre http://localhost:5000, sube una imagen, escribe un contexto y pulsa **Describir imagen**.
+Abre http://localhost:5000, sube una imagen, escribe un contexto, elige el modelo
+en el desplegable (`qwen2.5vl:3b` o `gemma3:4b`) y pulsa **Describir imagen**.
 
 ## Configuración
 
-Puedes cambiar el modelo editando `DEFAULT_MODEL` en `ollama_client.py`
-(por ejemplo `llava`, `llama3.2-vision` o `qwen2.5vl`).
+- El modelo se elige desde la propia interfaz (desplegable).
+- Por defecto usa `qwen2.5vl:3b`; puedes cambiarlo con la variable de entorno
+  `OLLAMA_MODEL` (por ejemplo `OLLAMA_MODEL=gemma3:4b .venv/bin/python app.py`).
+- Para añadir otro modelo: descárgalo con `ollama pull <modelo>` y agrégalo a
+  `AVAILABLE_MODELS` en `ollama_client.py`.
 
 ## Estructura
 
