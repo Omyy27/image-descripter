@@ -1,9 +1,9 @@
 @echo off
 setlocal
-title Compilar DescribirImagenIA.exe
+title Compilar ImageDescripter.exe
 
 echo ============================================
-echo  Compilando DescribirImagenIA.exe (PyInstaller)
+echo  Compilando ImageDescripter.exe (PyInstaller)
 echo ============================================
 echo.
 
@@ -33,7 +33,7 @@ if errorlevel 1 (
 )
 
 echo [..] Compilando (tarda unos minutos)...
-".venv\Scripts\python.exe" -m PyInstaller --onefile --name DescribirImagenIA --add-data "templates;templates" app.py
+".venv\Scripts\python.exe" -m PyInstaller --onefile --name ImageDescripter --add-data "templates;templates" app.py
 if errorlevel 1 (
     echo [!] Error al compilar.
     pause
@@ -41,6 +41,6 @@ if errorlevel 1 (
 )
 
 echo.
-echo  [OK] Ejecutable generado: dist\DescribirImagenIA.exe
+echo  [OK] Ejecutable generado: dist\ImageDescripter.exe
 echo.
 pause

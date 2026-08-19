@@ -1,111 +1,97 @@
-# Describir imagen con IA
+# Image Descripter
 
-Mini app web que recibe una imagen y un texto de contexto, y devuelve una descripción generada por un modelo de visión local (Ollama). Sin API keys ni costos.
+Mini app web que recibe una imagen y un texto de contexto, y genera una descripción con un modelo de visión local (**Ollama**). Sin API keys, sin costos y 100 % local: las imágenes no salen de tu máquina.
+
+## Características
+
+- **2 modelos de visión** elegibles desde la interfaz: `qwen2.5vl:3b` (mejor calidad) y `gemma3:4b` (ligero).
+- **Contexto libre**: escribe qué quieres que destaque la descripción.
+- **Controles del servidor** en la propia UI: recargar modelo, reiniciar servidor y detener procesos.
+- **Lanzadores de un clic**: WSL2 (`run.sh` / `start.bat`) y Windows nativo (`.exe`).
+- **Privacidad**: todo el procesamiento es local; no requiere internet ni API keys.
 
 ## Requisitos
 
-- Linux (x86_64)
-- Python 3.10+
-- ~4 GB de RAM libre (modelo `qwen2.5vl:3b`)
+- Linux/WSL2 o Windows.
+- [Ollama](https://ollama.com) instalado con los modelos de visión `qwen2.5vl:3b` y `gemma3:4b`.
+- Python 3.10+ (solo para desarrollo y para compilar el `.exe`).
+- ~4 GB de RAM libre para el modelo `qwen2.5vl:3b`.
 
-## Instalación
+## Inicio rápido
 
-### 1. Ollama
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-```
-
-> Si no tienes `sudo` disponible, descarga el binario desde
-> https://github.com/ollama/ollama/releases y extráelo en tu carpeta de usuario:
+### WSL2 (navegador en Windows)
 
 ```bash
-mkdir -p ~/.local/ollama
-curl -fsSL -o /tmp/ollama.tar.zst https://github.com/ollama/ollama/releases/download/v0.32.14/ollama-linux-amd64.tar.zst
-# extraer requiere el paquete `zstandard`: pip install zstandard
-export PATH="$HOME/.local/ollama/bin:$PATH"
+./run.sh
 ```
 
-Inicia el servidor de Ollama (mantenlo corriendo):
+o doble clic en `start.bat` desde Windows (arranca Ollama, la app y abre el navegador).
 
-```bash
-ollama serve
-```
+### Windows nativo (sin WSL)
 
-Descarga los modelos de visión (solo la primera vez):
-
-```bash
-ollama pull qwen2.5vl:3b   # mejor calidad
-ollama pull gemma3:4b      # ligero
-```
-
-### 2. Dependencias de Python
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-```
+1. Instala Ollama en Windows: https://ollama.com/download
+2. Descarga los modelos: `ollama pull qwen2.5vl:3b` y `ollama pull gemma3:4b`
+3. Doble clic en `build_windows.bat` → genera `dist\ImageDescripter.exe`
+4. Doble clic en `start_windows.bat`
 
 ## Uso
 
-### Ejecución fácil (WSL2 + Windows)
+Abre http://localhost:5000 y:
 
-Si trabajas en WSL2 y abres la app desde el navegador de Windows:
+1. **Sube una imagen** (clic o arrástrala).
+2. **Escribe un contexto** (opcional), por ejemplo:
+   *"describe este producto para una tienda online, destacando colores y qué sensación transmite"*.
+3. **Elige el modelo** en el desplegable.
+4. Pulsa **Describir imagen**.
 
-- **Doble clic** en `start.bat` (desde Windows) → arranca Ollama si hace falta,
-  descarga el modelo si no está, levanta la app y abre el navegador automáticamente.
-- O directamente en WSL2: `./run.sh`
+### Controles del servidor
 
-El proyecto debe estar en `~/agentic/read-image-ai` (la ruta que usa `start.bat`).
-El script es idempotente: si la app u Ollama ya están corriendo, no los duplica.
+En la parte inferior de la página:
 
-### Manual
+| Botón | Qué hace |
+|---|---|
+| **Recargar modelo** | Pre-carga el modelo elegido en memoria (acelera la primera descripción). |
+| **Reiniciar servidor** | Detiene y relanza la app automáticamente. |
+| **Detener procesos** | Detiene la app (Ollama sigue corriendo). Relánzala con `run.sh` / `start_windows.bat`. |
 
-```bash
-.venv/bin/python app.py
-```
+## Configuración
 
-Abre http://localhost:5000, sube una imagen, escribe un contexto, elige el modelo
-en el desplegable (`qwen2.5vl:3b` o `gemma3:4b`) y pulsa **Describir imagen**.
+- El modelo por defecto es `qwen2.5vl:3b`; cámbialo con la variable de entorno `OLLAMA_MODEL`:
 
-## Windows nativo (sin WSL)
+  ```bash
+  OLLAMA_MODEL=gemma3:4b .venv/bin/python app.py
+  ```
+
+- Para añadir otro modelo: `ollama pull <modelo>` y agrégalo a `AVAILABLE_MODELS` en `ollama_client.py`.
+- La app escucha en `0.0.0.0:5000`; en Windows nativo liga a `127.0.0.1` (solo acceso local).
+
+## Windows nativo (paso a paso)
 
 ### 1. Copiar el proyecto
-Desde el explorador de Windows, copia la carpeta del proyecto
-(`\\wsl$\Ubuntu\home\<tu_usuario>\agentic\read-image-ai`) a `C:\Users\<tu_usuario>\read-image-ai`.
+Copia la carpeta desde WSL2:
+`\\wsl$\Ubuntu\home\<tu_usuario>\agentic\read-image-ai` → `C:\Users\<tu_usuario>\read-image-ai`
 No hace falta copiar `.venv`, `.logs` ni `__pycache__`.
 
 ### 2. Instalar Ollama en Windows
-Descárgalo de https://ollama.com/download (queda como app de bandeja en `127.0.0.1:11434`).
+Descárgalo de https://ollama.com/download (app de bandeja en `127.0.0.1:11434`).
 
 ### 3. Transferir los modelos (sin re-descargar)
-Copia estas dos carpetas de WSL2:
+Copia estas carpetas de WSL2:
 - `\\wsl$\Ubuntu\home\<tu_usuario>\.local\ollama\models\manifests`
 - `\\wsl$\Ubuntu\home\<tu_usuario>\.local\ollama\models\blobs`
 
 a `C:\Users\<tu_usuario>\.ollama\models\` (crea la carpeta si no existe).
 
-Luego en cmd/PowerShell verifica: `ollama list` → deben aparecer `qwen2.5vl:3b` y `gemma3:4b`.
-Si no los detecta (versión de Ollama distinta), alternativa: `ollama pull qwen2.5vl:3b` y `ollama pull gemma3:4b`.
+Verifica con `ollama list` → deben aparecer `qwen2.5vl:3b` y `gemma3:4b`.
+Si no los detecta (versión distinta de Ollama), alternativa: `ollama pull qwen2.5vl:3b` y `ollama pull gemma3:4b`.
 
 ### 4. Compilar el ejecutable
-Doble clic en `build_windows.bat` → genera `dist\DescribirImagenIA.exe`
+Doble clic en `build_windows.bat` → genera `dist\ImageDescripter.exe`
 (requiere Python 3.13 con "Add to PATH"). El `.exe` no necesita Python para ejecutarse.
 
 ### 5. Usar
 Doble clic en `start_windows.bat` → arranca Ollama si hace falta, lanza la app y abre
 `http://localhost:5000` en el navegador.
-
-> Nota: `start_windows.bat` usa el `.exe` compilado y liga la app a `127.0.0.1`
-> (solo acceso local). Los lanzadores `run.sh`/`start.bat` siguen funcionando en WSL2.
-
-## Configuración
-
-- El modelo se elige desde la propia interfaz (desplegable).
-- Por defecto usa `qwen2.5vl:3b`; puedes cambiarlo con la variable de entorno
-  `OLLAMA_MODEL` (por ejemplo `OLLAMA_MODEL=gemma3:4b .venv/bin/python app.py`).
-- Para añadir otro modelo: descárgalo con `ollama pull <modelo>` y agrégalo a
-  `AVAILABLE_MODELS` en `ollama_client.py`.
 
 ## Estructura
 
@@ -121,3 +107,17 @@ read-image-ai/
 ├── start_windows.bat      # Lanzador Windows nativo (Ollama + .exe + navegador)
 └── requirements.txt
 ```
+
+## Solución de problemas
+
+- **El modelo no aparece tras transferirlo**: vuelve a instalarlo con
+  `ollama pull qwen2.5vl:3b` / `ollama pull gemma3:4b`.
+- **Puerto 5000 ocupado**: detén lo que lo use o cambia el puerto en `app.py` (`app.run(..., port=5000)`).
+- **La app se detuvo**: relánzala con `./run.sh` (WSL2) o `start_windows.bat` (Windows).
+- **La primera descripción tarda**: el modelo se está cargando en memoria; usa **Recargar modelo**
+  para pre-cargarlo.
+
+## Ramas
+
+- **`main`** — versión Flask + Ollama (la que documenta este README).
+- **`webgpu`** — versión alternativa que corre el modelo en el navegador con WebGPU (sin servidor de IA).

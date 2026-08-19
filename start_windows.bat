@@ -1,9 +1,9 @@
 @echo off
 setlocal
-title Describir imagen con IA
+title Image Descripter
 
 echo ============================================
-echo  Describir imagen con IA (Windows)
+echo  Image Descripter (Windows)
 echo ============================================
 echo.
 
@@ -22,14 +22,14 @@ if not errorlevel 1 (
 )
 
 REM --- Lanzar la app ---
-if not exist "dist\DescribirImagenIA.exe" (
-    echo [!] No se encontro dist\DescribirImagenIA.exe
+if not exist "dist\ImageDescripter.exe" (
+    echo [!] No se encontro dist\ImageDescripter.exe
     echo     Compilalo primero ejecutando build_windows.bat
     pause
     exit /b 1
 )
 set APP_HOST=127.0.0.1
-start "" "dist\DescribirImagenIA.exe"
+start "" "dist\ImageDescripter.exe"
 
 REM --- Esperar a que responda ---
 echo [..] Esperando a que el servidor este listo...

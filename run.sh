@@ -10,7 +10,7 @@ LOG_DIR="$PROJECT_DIR/.logs"
 
 mkdir -p "$LOG_DIR"
 
-echo "== Describir imagen con IA (Flask + Ollama) =="
+echo "== Image Descripter (Flask + Ollama) =="
 
 # 1. Binario de Ollama
 if [ ! -x "$OLLAMA_BIN" ]; then

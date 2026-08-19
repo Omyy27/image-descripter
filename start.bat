@@ -1,7 +1,7 @@
 @echo off
-title Describir imagen con IA
+title Image Descripter
 echo ============================================
-echo  Describir imagen con IA (Flask + Ollama)
+echo  Image Descripter (Flask + Ollama)
 echo ============================================
 echo.
 echo Arrancando la app dentro de WSL2...
