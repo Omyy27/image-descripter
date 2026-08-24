@@ -25,11 +25,18 @@ def describe_image(image_base64, prompt, model=DEFAULT_MODEL, timeout=300):
 
 
 def chat_image(image_b64, messages, model=DEFAULT_MODEL, timeout=300, max_messages=20):
-    msgs = list(messages)
+    msgs = []
+    for m in messages:
+        clean = {"role": m.get("role"), "content": (m.get("content") or "").strip()}
+        imgs = m.get("images") or []
+        if isinstance(imgs, list):
+            imgs = [i for i in imgs if isinstance(i, str) and i]
+            if imgs:
+                clean["images"] = imgs
+        msgs.append(clean)
     if image_b64:
         first_user = next((i for i, m in enumerate(msgs) if m.get("role") == "user"), 0)
-        if "images" not in msgs[first_user]:
-            msgs[first_user] = {**msgs[first_user], "images": [image_b64]}
+        msgs[first_user]["images"] = msgs[first_user].get("images", []) + [image_b64]
     if len(msgs) > max_messages:
         msgs = [msgs[0]] + msgs[-(max_messages - 1):]
     payload = {"model": model, "messages": msgs, "stream": False}

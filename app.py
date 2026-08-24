@@ -102,7 +102,20 @@ def chat():
         return jsonify({"error": "Historial de mensajes inválido."}), 400
     if not isinstance(messages, list) or not messages:
         return jsonify({"error": "Historial de mensajes vacío."}), 400
-    if not all(isinstance(m, dict) and m.get("role") and m.get("content") for m in messages):
+    if not all(
+        isinstance(m, dict)
+        and m.get("role") in ("user", "assistant", "system")
+        and isinstance(m.get("content"), str)
+        and m["content"].strip()
+        and (
+            "images" not in m
+            or (
+                isinstance(m["images"], list)
+                and all(isinstance(i, str) and i for i in m["images"])
+            )
+        )
+        for m in messages
+    ):
         return jsonify({"error": "Formato de mensajes inválido."}), 400
 
     image_b64 = (request.form.get("image") or "").strip() or None
