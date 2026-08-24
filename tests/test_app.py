@@ -155,6 +155,49 @@ def test_stats_con_psutil(client, monkeypatch):
     assert d["ram"]["percent"] == 10
 
 
+# --- /api/unload-model ---
+
+
+def test_unload_model_ok(client, monkeypatch):
+    captured = {}
+    monkeypatch.setattr(appmod, "unload_model", lambda model: captured.update(model=model) or True)
+    r = client.post("/api/unload-model", data={"model": "qwen2.5vl:3b"})
+    assert r.status_code == 200
+    assert r.get_json()["ok"] is True
+    assert captured["model"] == "qwen2.5vl:3b"
+
+
+def test_unload_model_error(client, monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(appmod, "unload_model", boom)
+    r = client.post("/api/unload-model", data={"model": "qwen2.5vl:3b"})
+    assert r.status_code == 500
+    assert r.get_json()["ok"] is False
+
+
+def test_chat_image_payload_keep_alive_num_ctx(monkeypatch):
+    captured = {}
+
+    class FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"message": {"content": "ok"}, "total_duration": 0, "eval_duration": 0, "load_duration": 0}
+
+    def fake_post(url, **kw):
+        captured["payload"] = kw["json"]
+        return FakeResp()
+
+    monkeypatch.setattr(ollama_client.requests, "post", fake_post)
+    ollama_client.chat_image(None, [{"role": "user", "content": "hola"}])
+    payload = captured["payload"]
+    assert payload["keep_alive"]
+    assert payload["options"]["num_ctx"] == 4096
+
+
 # --- ollama_client.chat_image (guard + timing) ---
 
 

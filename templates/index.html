@@ -123,6 +123,7 @@
             <p class="text-[11px] font-semibold text-app-muted uppercase tracking-wider mb-2">Controles del servidor</p>
             <div class="space-y-2">
               <button id="btn-reload" class="ctrl-btn w-full justify-center"><i class="ph ph-arrow-clockwise"></i> Recargar modelo</button>
+              <button id="btn-unload" class="ctrl-btn w-full justify-center"><i class="ph ph-arrow-down"></i> Descargar modelo</button>
               <button id="btn-restart" class="ctrl-btn w-full justify-center"><i class="ph ph-arrow-counter-clockwise"></i> Reiniciar servidor</button>
               <button id="btn-stop" class="ctrl-btn danger w-full justify-center"><i class="ph ph-x-circle"></i> Detener procesos</button>
             </div>
@@ -202,6 +203,7 @@
             </div>
             <h4 class="text-sm font-medium">Estadísticas</h4>
           </div>
+          <p id="ram-warning" class="hidden text-xs text-amber-400 mb-3">RAM alta — usa "Descargar modelo" o el modelo ligero (moondream).</p>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p class="text-[11px] text-app-muted mb-1">Uptime</p>

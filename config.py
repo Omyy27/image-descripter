@@ -13,6 +13,7 @@ DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5vl:3b")
 MODEL_META = [
     {"value": "qwen2.5vl:3b", "label": "qwen2.5vl:3b (mejor calidad)"},
     {"value": "gemma3:4b", "label": "gemma3:4b (ligero)"},
+    {"value": "moondream", "label": "moondream (ligero ~1.7 GB)"},
 ]
 AVAILABLE_MODELS = [m["value"] for m in MODEL_META]
 
@@ -26,7 +27,8 @@ MAX_IMAGE_SIZE = 1280
 
 # --- Chat / Ollama ---
 CHAT_MAX_MESSAGES = 20
-KEEP_ALIVE = "30m"
+KEEP_ALIVE = os.environ.get("OLLAMA_KEEP_ALIVE", "5m")
+NUM_CTX = 4096
 TIMEOUT_CHAT = 300
 TIMEOUT_WARM = 120
 TIMEOUT_PING = 2

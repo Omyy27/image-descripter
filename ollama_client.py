@@ -7,6 +7,7 @@ import requests
 from config import (
     DEFAULT_MODEL,
     KEEP_ALIVE,
+    NUM_CTX,
     OLLAMA_API_CHAT,
     OLLAMA_API_GENERATE,
     OLLAMA_API_TAGS,
@@ -59,7 +60,13 @@ def chat_image(
     if len(msgs) > max_messages:
         msgs = [msgs[0]] + msgs[-(max_messages - 1):]
 
-    payload = {"model": model, "messages": msgs, "stream": False}
+    payload = {
+        "model": model,
+        "messages": msgs,
+        "stream": False,
+        "keep_alive": KEEP_ALIVE,
+        "options": {"num_ctx": NUM_CTX},
+    }
     resp = requests.post(OLLAMA_API_CHAT, json=payload, timeout=timeout)
     resp.raise_for_status()
     data = resp.json()
@@ -96,3 +103,17 @@ def ping_ollama(timeout: int = TIMEOUT_PING) -> bool:
         return True
     except requests.RequestException:
         return False
+
+
+def unload_model(model: str, timeout: int = TIMEOUT_WARM) -> bool:
+    """Libera el modelo de la memoria de Ollama (keep_alive=0)."""
+    payload = {
+        "model": model,
+        "prompt": "x",
+        "stream": False,
+        "keep_alive": 0,
+        "options": {"num_predict": 1},
+    }
+    resp = requests.post(OLLAMA_API_GENERATE, json=payload, timeout=timeout)
+    resp.raise_for_status()
+    return True

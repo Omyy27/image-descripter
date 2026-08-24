@@ -559,8 +559,10 @@
         if (d.ram && d.ram.total_mb) {
           $('stat-ram').textContent = (d.ram.used_mb / 1024).toFixed(1) + ' / ' + (d.ram.total_mb / 1024).toFixed(1) + ' GB';
           $('stat-ram-bar').style.width = Math.min(100, d.ram.percent || 0) + '%';
+          $('ram-warning').classList.toggle('hidden', (d.ram.percent || 0) <= 90);
         } else {
           $('stat-ram').textContent = '—';
+          $('ram-warning').classList.add('hidden');
         }
         const ok = !!d.ollama;
         $('ollama-label').textContent = ok ? 'Modelo activo' : 'Ollama no disponible';
@@ -642,6 +644,20 @@
         const fd = new FormData();
         fd.append('model', model);
         const data = await postCtrl('/api/reload-model', fd);
+        ctrlMsg(data.ok ? data.message : ('Error: ' + (data.error || 'desconocido')), !data.ok);
+      } catch (err) {
+        ctrlMsg('Error: ' + err.message, true);
+      }
+    });
+
+    $('btn-unload').addEventListener('click', async () => {
+      closeServerMenu();
+      const model = $('model-chat').value;
+      ctrlMsg('Descargando ' + model + '…');
+      try {
+        const fd = new FormData();
+        fd.append('model', model);
+        const data = await postCtrl('/api/unload-model', fd);
         ctrlMsg(data.ok ? data.message : ('Error: ' + (data.error || 'desconocido')), !data.ok);
       } catch (err) {
         ctrlMsg('Error: ' + err.message, true);
