@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import os
 import subprocess
 import sys
@@ -7,7 +8,13 @@ import sys
 from flask import Flask, jsonify, render_template, request
 from PIL import Image
 
-from ollama_client import AVAILABLE_MODELS, DEFAULT_MODEL, describe_image, warm_model
+from ollama_client import (
+    AVAILABLE_MODELS,
+    DEFAULT_MODEL,
+    chat_image,
+    describe_image,
+    warm_model,
+)
 
 if getattr(sys, "frozen", False):
     BASE_DIR = sys._MEIPASS
@@ -78,6 +85,36 @@ def describe():
     except Exception as exc:
         app.logger.exception("Error generando la descripción")
         return jsonify({"error": f"Error generando la descripción: {exc}"}), 500
+
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    model = (request.form.get("model") or "").strip()
+    if model not in AVAILABLE_MODELS:
+        model = DEFAULT_MODEL
+
+    messages_raw = (request.form.get("messages") or "").strip()
+    if not messages_raw:
+        return jsonify({"error": "No hay mensajes en la conversación."}), 400
+    try:
+        messages = json.loads(messages_raw)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Historial de mensajes inválido."}), 400
+    if not isinstance(messages, list) or not messages:
+        return jsonify({"error": "Historial de mensajes vacío."}), 400
+    if not all(isinstance(m, dict) and m.get("role") and m.get("content") for m in messages):
+        return jsonify({"error": "Formato de mensajes inválido."}), 400
+
+    image_b64 = (request.form.get("image") or "").strip() or None
+
+    try:
+        reply = chat_image(image_b64, messages, model=model)
+        if not reply:
+            return jsonify({"error": "El modelo no devolvió una respuesta."}), 500
+        return jsonify({"reply": reply})
+    except Exception as exc:
+        app.logger.exception("Error en el chat")
+        return jsonify({"error": f"Error en el chat: {exc}"}), 500
 
 
 @app.route("/api/reload-model", methods=["POST"])

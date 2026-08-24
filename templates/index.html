@@ -98,18 +98,49 @@
     .btn-row button.danger { background: #7f1d1d; }
     .btn-row button.danger:hover:not(:disabled) { background: #991b1b; }
     .ctrl-status { margin-top: 0.7rem; font-size: 0.82rem; color: #94a3b8; min-height: 1em; }
-    .result {
-      margin-top: 1.5rem;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 1rem;
-      white-space: pre-wrap;
-      line-height: 1.6;
-      display: none;
+    .chat { display: none; margin-top: 1.2rem; }
+    .chat-history {
+      max-height: 400px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding-right: 0.2rem;
     }
-    .result.show { display: block; }
-    .error { border-color: #ef4444 !important; color: #fca5a5; }
+    .bubble {
+      max-width: 88%;
+      padding: 0.7rem 0.9rem;
+      border-radius: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      font-size: 0.92rem;
+      word-break: break-word;
+    }
+    .bubble.user { align-self: flex-end; background: #0284c7; color: white; border-bottom-right-radius: 4px; }
+    .bubble.assistant { align-self: flex-start; background: #334155; color: #e2e8f0; border-bottom-left-radius: 4px; }
+    .bubble.error { align-self: flex-start; background: #450a0a; color: #fca5a5; border: 1px solid #ef4444; }
+    .bubble.typing { align-self: flex-start; color: #94a3b8; font-style: italic; }
+    .chat-input-row { display: flex; gap: 0.5rem; margin-top: 0.8rem; }
+    .chat-input-row input {
+      flex: 1;
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 0.7rem 0.8rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+    .chat-input-row input:focus { outline: 2px solid #38bdf8; border-color: transparent; }
+    .chat-input-row button {
+      margin-top: 0;
+      padding: 0.7rem 1rem;
+      width: auto;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .chat-input-row button.secondary { background: #334155; }
+    .chat-input-row button.secondary:hover:not(:disabled) { background: #475569; }
     .spinner {
       display: none;
       width: 18px; height: 18px;
@@ -126,18 +157,18 @@
 </head>
 <body>
   <h1>Image Descripter</h1>
-  <p class="sub">Sube una imagen y dale contexto para obtener una descripción a medida.</p>
+  <p class="sub">Sube una imagen (opcional) y conversa con el modelo, o pide una descripción.</p>
 
   <div class="card">
     <form id="form">
-      <label for="file">Imagen</label>
+      <label for="file">Imagen (opcional)</label>
       <div class="drop" id="drop">
         <input type="file" id="file" accept="image/*" style="display:none">
-        <div id="drop-text">Haz clic o arrastra una imagen aquí</div>
+        <div id="drop-text">Haz clic o arrastra una imagen aquí (opcional)</div>
         <img id="preview" alt="Vista previa">
       </div>
 
-      <label for="context">Contexto (opcional)</label>
+      <label for="context">Mensaje inicial / contexto (opcional)</label>
       <textarea id="context" name="context" placeholder="Ej: Describe este producto para una tienda online, destacando sus colores y qué sensación transmite."></textarea>
 
       <label for="model">Modelo</label>
@@ -148,11 +179,21 @@
 
       <button type="submit" id="btn">
         <span class="spinner"></span>
-        <span class="label">Describir imagen</span>
+        <span class="label">Iniciar chat</span>
       </button>
     </form>
 
-    <div class="result" id="result"></div>
+    <div class="chat" id="chat">
+      <div class="chat-history" id="chat-history"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Escribe tu mensaje…">
+        <button type="button" id="btn-send">
+          <span class="spinner"></span>
+          <span class="label">Enviar</span>
+        </button>
+        <button type="button" id="btn-newchat" class="secondary">Nuevo chat</button>
+      </div>
+    </div>
 
     <div class="controls">
       <h3>Controles del servidor</h3>
@@ -172,7 +213,14 @@
     const dropText = document.getElementById('drop-text');
     const form = document.getElementById('form');
     const btn = document.getElementById('btn');
-    const resultBox = document.getElementById('result');
+    const chatEl = document.getElementById('chat');
+    const chatHistory = document.getElementById('chat-history');
+    const chatInput = document.getElementById('chat-input');
+    const btnSend = document.getElementById('btn-send');
+    const btnNewChat = document.getElementById('btn-newchat');
+
+    let messages = [];
+    let imageB64 = '';
 
     drop.addEventListener('click', () => fileInput.click());
     drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
@@ -190,6 +238,7 @@
       if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
       reader.onload = () => {
+        imageB64 = (reader.result.split(',')[1] || '');
         preview.src = reader.result;
         preview.style.display = 'block';
         dropText.textContent = file.name;
@@ -197,36 +246,82 @@
       reader.readAsDataURL(file);
     }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!fileInput.files.length) {
-        resultBox.className = 'result show error';
-        resultBox.textContent = 'Selecciona una imagen primero.';
-        return;
-      }
-      const fd = new FormData();
-      fd.append('image', fileInput.files[0]);
-      fd.append('context', document.getElementById('context').value);
-      fd.append('model', document.getElementById('model').value);
+    function addBubble(role, text) {
+      const div = document.createElement('div');
+      div.className = 'bubble ' + role;
+      div.textContent = text;
+      chatHistory.appendChild(div);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+      return div;
+    }
 
-      btn.disabled = true;
-      btn.classList.add('loading');
-      resultBox.className = 'result';
-      resultBox.textContent = 'Generando descripción...';
+    function setBusy(busy) {
+      btn.disabled = busy;
+      btnSend.disabled = busy;
+      btnNewChat.disabled = busy;
+      chatInput.disabled = busy;
+      btn.classList.toggle('loading', busy);
+      btnSend.classList.toggle('loading', busy);
+      chatInput.focus();
+    }
+
+    async function sendTurn(history, model, image, isFirst) {
+      const fd = new FormData();
+      fd.append('model', model);
+      fd.append('messages', JSON.stringify(history));
+      if (image) fd.append('image', image);
+
+      setBusy(true);
+      if (isFirst) {
+        form.style.display = 'none';
+        chatEl.style.display = 'block';
+      }
+      addBubble('user', history[history.length - 1].content);
+      const typing = addBubble('typing', 'Pensando…');
 
       try {
-        const res = await fetch('/describe', { method: 'POST', body: fd });
+        const res = await fetch('/api/chat', { method: 'POST', body: fd });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error del servidor');
-        resultBox.className = 'result show';
-        resultBox.textContent = data.description;
+        typing.remove();
+        addBubble('assistant', data.reply);
+        messages = [...history, { role: 'assistant', content: data.reply }];
       } catch (err) {
-        resultBox.className = 'result show error';
-        resultBox.textContent = 'Error: ' + err.message;
+        typing.remove();
+        addBubble('error', 'Error: ' + err.message);
       } finally {
-        btn.disabled = false;
-        btn.classList.remove('loading');
+        setBusy(false);
       }
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const context = document.getElementById('context').value.trim();
+      const firstContent = context || 'Describe esta imagen en detalle.';
+      sendTurn([{ role: 'user', content: firstContent }], document.getElementById('model').value, imageB64, true);
+    });
+
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      chatInput.value = '';
+      const nextHistory = [...messages, { role: 'user', content: text }];
+      sendTurn(nextHistory, document.getElementById('model').value, imageB64, false);
+    }
+
+    btnSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    btnNewChat.addEventListener('click', () => {
+      if (messages.length && !confirm('¿Iniciar un nuevo chat? Se borrará la conversación actual.')) return;
+      messages = [];
+      chatHistory.innerHTML = '';
+      chatEl.style.display = 'none';
+      form.style.display = '';
+      document.getElementById('context').value = '';
+      chatInput.value = '';
     });
 
     // --- Controles del servidor ---
