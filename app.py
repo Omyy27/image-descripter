@@ -4,9 +4,16 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 from flask import Flask, jsonify, render_template, request
 from PIL import Image
+
+try:
+    import psutil
+    psutil.cpu_percent(interval=None)
+except ImportError:  # pragma: no cover
+    psutil = None
 
 from ollama_client import (
     AVAILABLE_MODELS,
@@ -15,6 +22,8 @@ from ollama_client import (
     describe_image,
     warm_model,
 )
+
+START_TIME = time.time()
 
 if getattr(sys, "frozen", False):
     BASE_DIR = sys._MEIPASS
@@ -128,6 +137,30 @@ def chat():
     except Exception as exc:
         app.logger.exception("Error en el chat")
         return jsonify({"error": f"Error en el chat: {exc}"}), 500
+
+
+@app.route("/api/stats", methods=["GET"])
+def stats():
+    uptime = round(time.time() - START_TIME)
+    cpu = None
+    ram = None
+    if psutil is not None:
+        cpu = round(psutil.cpu_percent(interval=None) or 0)
+        vm = psutil.virtual_memory()
+        ram = {
+            "used_mb": round(vm.used / (1024 * 1024)),
+            "total_mb": round(vm.total / (1024 * 1024)),
+            "percent": round(vm.percent),
+        }
+    ollama_ok = False
+    try:
+        import requests as _requests
+
+        _requests.get("http://localhost:11434/api/tags", timeout=2)
+        ollama_ok = True
+    except Exception:
+        ollama_ok = False
+    return jsonify({"uptime": uptime, "cpu": cpu, "ram": ram, "ollama": ollama_ok})
 
 
 @app.route("/api/reload-model", methods=["POST"])
