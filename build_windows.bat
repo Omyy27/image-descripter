@@ -33,7 +33,7 @@ if errorlevel 1 (
 )
 
 echo [..] Compilando (tarda unos minutos)...
-".venv\Scripts\python.exe" -m PyInstaller --onefile --name ImageDescripter --add-data "templates;templates" app.py
+".venv\Scripts\python.exe" -m PyInstaller --onefile --name ImageDescripter --add-data "templates;templates" --add-data "static;static" app.py
 if errorlevel 1 (
     echo [!] Error al compilar.
     pause

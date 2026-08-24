@@ -1,5 +1,5 @@
-import base64
-import io
+"""Servidor Flask de Image Descripter."""
+
 import json
 import os
 import subprocess
@@ -7,19 +7,27 @@ import sys
 import time
 
 from flask import Flask, jsonify, render_template, request
-from PIL import Image
 
 try:
     import psutil
+
     psutil.cpu_percent(interval=None)
 except ImportError:  # pragma: no cover
     psutil = None
 
-from ollama_client import (
+from config import (
+    APP_HOST,
     AVAILABLE_MODELS,
     DEFAULT_MODEL,
+    MAX_CONTENT_LENGTH,
+    MODEL_META,
+    PORT,
+)
+from image_utils import prepare_image
+from ollama_client import (
     chat_image,
     describe_image,
+    ping_ollama,
     warm_model,
 )
 
@@ -30,19 +38,20 @@ if getattr(sys, "frozen", False):
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
-app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static"),
+)
+app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
-MAX_IMAGE_SIZE = 1280
-APP_HOST = os.environ.get("APP_HOST", "0.0.0.0")
 
-
-def _is_windows():
+def _is_windows() -> bool:
     return sys.platform.startswith("win")
 
 
-def _detach(cmd):
-    kwargs = {
+def _detach(cmd: str) -> None:
+    kwargs: dict = {
         "shell": True,
         "stdin": subprocess.DEVNULL,
         "stdout": subprocess.DEVNULL,
@@ -50,22 +59,22 @@ def _detach(cmd):
     }
     if not _is_windows():
         kwargs["start_new_session"] = True
-    return subprocess.Popen(cmd, **kwargs)
+    subprocess.Popen(cmd, **kwargs)
 
 
-def prepare_image(raw: bytes) -> str:
-    img = Image.open(io.BytesIO(raw))
-    img.thumbnail((MAX_IMAGE_SIZE, MAX_IMAGE_SIZE))
-    if img.mode != "RGB":
-        img = img.convert("RGB")
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=88)
-    return base64.b64encode(buf.getvalue()).decode()
+def _pick_model(raw: str) -> str:
+    model = (raw or "").strip()
+    return model if model in AVAILABLE_MODELS else DEFAULT_MODEL
 
 
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/api/models", methods=["GET"])
+def models():
+    return jsonify({"models": MODEL_META})
 
 
 @app.route("/describe", methods=["POST"])
@@ -81,9 +90,7 @@ def describe():
     if not context:
         context = "Describe esta imagen en detalle."
 
-    model = (request.form.get("model") or "").strip()
-    if model not in AVAILABLE_MODELS:
-        model = DEFAULT_MODEL
+    model = _pick_model(request.form.get("model") or "")
 
     try:
         image_b64 = prepare_image(file.read())
@@ -98,9 +105,7 @@ def describe():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    model = (request.form.get("model") or "").strip()
-    if model not in AVAILABLE_MODELS:
-        model = DEFAULT_MODEL
+    model = _pick_model(request.form.get("model") or "")
 
     messages_raw = (request.form.get("messages") or "").strip()
     if not messages_raw:
@@ -152,22 +157,19 @@ def stats():
             "total_mb": round(vm.total / (1024 * 1024)),
             "percent": round(vm.percent),
         }
-    ollama_ok = False
-    try:
-        import requests as _requests
-
-        _requests.get("http://localhost:11434/api/tags", timeout=2)
-        ollama_ok = True
-    except Exception:
-        ollama_ok = False
-    return jsonify({"uptime": uptime, "cpu": cpu, "ram": ram, "ollama": ollama_ok})
+    return jsonify(
+        {
+            "uptime": uptime,
+            "cpu": cpu,
+            "ram": ram,
+            "ollama": ping_ollama(),
+        }
+    )
 
 
 @app.route("/api/reload-model", methods=["POST"])
 def reload_model():
-    model = (request.form.get("model") or "").strip()
-    if model not in AVAILABLE_MODELS:
-        model = DEFAULT_MODEL
+    model = _pick_model(request.form.get("model") or "")
     try:
         warm_model(model)
         return jsonify({"ok": True, "message": f"Modelo {model} pre-cargado en memoria."})
@@ -218,4 +220,6 @@ def stop_server():
 
 
 if __name__ == "__main__":
-    app.run(host=APP_HOST, port=5000, debug=False)
+    from waitress import serve
+
+    serve(app, host=APP_HOST, port=PORT, threads=8)

@@ -1,33 +1,52 @@
-import os
+"""Cliente de la API local de Ollama (generate, chat, warm-up, ping)."""
+
+from typing import Any
 
 import requests
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5vl:3b")
+from config import (
+    DEFAULT_MODEL,
+    KEEP_ALIVE,
+    OLLAMA_API_CHAT,
+    OLLAMA_API_GENERATE,
+    OLLAMA_API_TAGS,
+    TIMEOUT_CHAT,
+    TIMEOUT_PING,
+    TIMEOUT_WARM,
+)
 
-AVAILABLE_MODELS = [
-    "qwen2.5vl:3b",
-    "gemma3:4b",
-]
 
-
-def describe_image(image_base64, prompt, model=DEFAULT_MODEL, timeout=300):
+def describe_image(
+    image_base64: str,
+    prompt: str,
+    model: str = DEFAULT_MODEL,
+    timeout: int = TIMEOUT_CHAT,
+) -> str:
     payload = {
         "model": model,
         "prompt": prompt,
         "images": [image_base64],
         "stream": False,
     }
-    resp = requests.post(OLLAMA_URL, json=payload, timeout=timeout)
+    resp = requests.post(OLLAMA_API_GENERATE, json=payload, timeout=timeout)
     resp.raise_for_status()
     data = resp.json()
     return data.get("response", "").strip()
 
 
-def chat_image(image_b64, messages, model=DEFAULT_MODEL, timeout=300, max_messages=20):
-    msgs = []
+def chat_image(
+    image_b64: str | None,
+    messages: list[dict[str, Any]],
+    model: str = DEFAULT_MODEL,
+    timeout: int = TIMEOUT_CHAT,
+    max_messages: int = 20,
+) -> tuple[str, dict[str, int]]:
+    msgs: list[dict[str, Any]] = []
     for m in messages:
-        clean = {"role": m.get("role"), "content": (m.get("content") or "").strip()}
+        clean: dict[str, Any] = {
+            "role": m.get("role"),
+            "content": (m.get("content") or "").strip(),
+        }
         imgs = m.get("images") or []
         if isinstance(imgs, list):
             imgs = [i for i in imgs if isinstance(i, str) and i]
@@ -39,10 +58,9 @@ def chat_image(image_b64, messages, model=DEFAULT_MODEL, timeout=300, max_messag
         msgs[first_user]["images"] = msgs[first_user].get("images", []) + [image_b64]
     if len(msgs) > max_messages:
         msgs = [msgs[0]] + msgs[-(max_messages - 1):]
+
     payload = {"model": model, "messages": msgs, "stream": False}
-    resp = requests.post(
-        "http://localhost:11434/api/chat", json=payload, timeout=timeout
-    )
+    resp = requests.post(OLLAMA_API_CHAT, json=payload, timeout=timeout)
     resp.raise_for_status()
     data = resp.json()
     message = data.get("message") or {}
@@ -55,7 +73,11 @@ def chat_image(image_b64, messages, model=DEFAULT_MODEL, timeout=300, max_messag
     return content, timing
 
 
-def warm_model(model, keep_alive="30m", timeout=120):
+def warm_model(
+    model: str,
+    keep_alive: str = KEEP_ALIVE,
+    timeout: int = TIMEOUT_WARM,
+) -> bool:
     payload = {
         "model": model,
         "prompt": "Describe.",
@@ -63,6 +85,14 @@ def warm_model(model, keep_alive="30m", timeout=120):
         "keep_alive": keep_alive,
         "options": {"num_predict": 1},
     }
-    resp = requests.post(OLLAMA_URL, json=payload, timeout=timeout)
+    resp = requests.post(OLLAMA_API_GENERATE, json=payload, timeout=timeout)
     resp.raise_for_status()
     return True
+
+
+def ping_ollama(timeout: int = TIMEOUT_PING) -> bool:
+    try:
+        requests.get(OLLAMA_API_TAGS, timeout=timeout)
+        return True
+    except requests.RequestException:
+        return False

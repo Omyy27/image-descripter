@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .logs/
 .opencode/
+.pytest_cache/
+dist/
+build/
+*.spec

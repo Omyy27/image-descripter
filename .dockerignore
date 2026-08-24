@@ -1,0 +1,17 @@
+.venv
+.git
+.gitignore
+.logs
+.opencode
+__pycache__
+*.pyc
+.pytest_cache
+dist
+build
+*.spec
+docs
+tests
+Dockerfile
+docker-compose.yml
+Makefile
+README.md
