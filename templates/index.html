@@ -200,10 +200,14 @@
         </div>
       </div>
       <div class="flex items-center gap-4">
-        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-app-panel/50 border border-app-border text-xs text-app-muted">
-          <i class="ph ph-cloud-check text-emerald-400"></i>
-          Modelo en local
-        </div>
+        <label class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-app-panel/50 border border-app-border text-xs text-app-muted cursor-pointer" title="Modelo activo">
+          <i class="ph ph-microchip text-emerald-400"></i>
+          <select id="model-chat" class="bg-transparent text-app-text text-xs font-medium focus:outline-none cursor-pointer appearance-none">
+            <option value="qwen2.5vl:3b">qwen2.5vl:3b</option>
+            <option value="gemma3:4b">gemma3:4b</option>
+          </select>
+          <i class="ph ph-caret-down text-app-muted"></i>
+        </label>
         <div class="flex items-center gap-2 pl-4 border-l border-app-border">
           <span class="relative flex h-2.5 w-2.5">
             <span id="ollama-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -674,7 +678,7 @@
       renderPendingThumbs();
       const content = text || 'Describe esta imagen.';
       const userMsg = { role: 'user', content, images };
-      sendTurn([...chat.messages, userMsg], chat.model || $('model').value, chat);
+      sendTurn([...chat.messages, userMsg], chat.model || $('model-chat').value, chat);
     }
 
     btnSend.addEventListener('click', sendMessage);
@@ -768,7 +772,7 @@
       if (!chat) return;
       currentId = id;
       saveActive();
-      $('model').value = chat.model || $('model').value;
+      setModel(chat.model || $('model-chat').value);
       $('context').value = '';
       pendingImages = [];
       renderPendingThumbs();
@@ -833,9 +837,28 @@
     }
 
     function syncStatModel() {
-      $('stat-model').textContent = $('model').value;
+      $('stat-model').textContent = $('model-chat').value;
     }
-    $('model').addEventListener('change', syncStatModel);
+
+    function setModel(value) {
+      $('model').value = value;
+      $('model-chat').value = value;
+      syncStatModel();
+    }
+
+    $('model').addEventListener('change', () => {
+      $('model-chat').value = $('model').value;
+      syncStatModel();
+    });
+    $('model-chat').addEventListener('change', () => {
+      $('model').value = $('model-chat').value;
+      syncStatModel();
+      const chat = currentChat();
+      if (chat) {
+        chat.model = $('model-chat').value;
+        saveChats();
+      }
+    });
 
     async function refreshStats() {
       try {
