@@ -653,7 +653,7 @@
     $('btn-unload').addEventListener('click', async () => {
       closeServerMenu();
       const model = $('model-chat').value;
-      ctrlMsg('Descargando ' + model + '…');
+      ctrlMsg('Deteniendo ' + model + '…');
       try {
         const fd = new FormData();
         fd.append('model', model);

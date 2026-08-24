@@ -64,7 +64,7 @@ El panel inferior de la card muestra **estadísticas en vivo**: uptime, CPU, RAM
 
 ## Optimizar uso de RAM
 
-- **Descargar modelo**: botón en el dropdown de controles del servidor → libera la RAM de Ollama al instante (`keep_alive: 0`).
+- **Detener modelo**: botón en el dropdown de controles del servidor → libera la RAM de Ollama al instante (`keep_alive: 0`).
 - **Retención del modelo**: el modelo se mantiene en memoria durante `KEEP_ALIVE` tras cada uso. Por defecto **5 min**; cámbialo con la variable de entorno `OLLAMA_KEEP_ALIVE` (ej. `OLLAMA_KEEP_ALIVE=0` descarga tras cada respuesta — más RAM libre, pero recarga en cada mensaje):
   ```bash
   OLLAMA_KEEP_ALIVE=2m ./run.sh

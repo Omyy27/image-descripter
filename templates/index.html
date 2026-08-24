@@ -115,15 +115,15 @@
           </span>
           <span id="ollama-label" class="text-xs font-medium text-emerald-400">Modelo activo</span>
         </div>
-        <div class="relative">
-          <button id="btn-server-menu" class="text-app-muted hover:text-white transition-colors p-1.5" title="Controles del servidor">
-            <i class="ph ph-server text-lg"></i>
+        <div class="relative shrink-0">
+          <button id="btn-server-menu" class="w-9 h-9 rounded-xl bg-app-panel/50 border border-app-border text-app-muted hover:text-white hover:border-app-muted transition-colors flex items-center justify-center" title="Controles del servidor">
+            <i class="ph-fill ph-server text-lg"></i>
           </button>
           <div id="server-menu" class="hidden absolute right-0 top-full mt-2 w-64 bg-app-sidebar border border-app-border rounded-xl shadow-2xl p-3 z-30">
             <p class="text-[11px] font-semibold text-app-muted uppercase tracking-wider mb-2">Controles del servidor</p>
             <div class="space-y-2">
               <button id="btn-reload" class="ctrl-btn w-full justify-center"><i class="ph ph-arrow-clockwise"></i> Recargar modelo</button>
-              <button id="btn-unload" class="ctrl-btn w-full justify-center"><i class="ph ph-arrow-down"></i> Descargar modelo</button>
+              <button id="btn-unload" class="ctrl-btn w-full justify-center"><i class="ph ph-arrow-down"></i> Detener modelo</button>
               <button id="btn-restart" class="ctrl-btn w-full justify-center"><i class="ph ph-arrow-counter-clockwise"></i> Reiniciar servidor</button>
               <button id="btn-stop" class="ctrl-btn danger w-full justify-center"><i class="ph ph-x-circle"></i> Detener procesos</button>
             </div>
@@ -203,7 +203,7 @@
             </div>
             <h4 class="text-sm font-medium">Estadísticas</h4>
           </div>
-          <p id="ram-warning" class="hidden text-xs text-amber-400 mb-3">RAM alta — usa "Descargar modelo" o el modelo ligero (moondream).</p>
+          <p id="ram-warning" class="hidden text-xs text-amber-400 mb-3">RAM alta — usa "Detener modelo" o el modelo ligero (moondream).</p>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p class="text-[11px] text-app-muted mb-1">Uptime</p>

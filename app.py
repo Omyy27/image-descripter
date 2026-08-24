@@ -184,7 +184,7 @@ def unload_model_route():
     model = _pick_model(request.form.get("model") or "")
     try:
         unload_model(model)
-        return jsonify({"ok": True, "message": f"Modelo {model} descargado de la memoria."})
+        return jsonify({"ok": True, "message": f"Modelo {model} detenido (liberado de la memoria)."})
     except Exception as exc:
         app.logger.exception("Error descargando el modelo")
         return jsonify({"ok": False, "error": f"Error descargando el modelo: {exc}"}), 500
