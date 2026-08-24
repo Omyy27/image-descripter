@@ -130,10 +130,10 @@ def chat():
     image_b64 = (request.form.get("image") or "").strip() or None
 
     try:
-        reply = chat_image(image_b64, messages, model=model)
+        reply, timing = chat_image(image_b64, messages, model=model)
         if not reply:
             return jsonify({"error": "El modelo no devolvió una respuesta."}), 500
-        return jsonify({"reply": reply})
+        return jsonify({"reply": reply, "timing": timing})
     except Exception as exc:
         app.logger.exception("Error en el chat")
         return jsonify({"error": f"Error en el chat: {exc}"}), 500

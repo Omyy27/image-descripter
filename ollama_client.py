@@ -46,7 +46,13 @@ def chat_image(image_b64, messages, model=DEFAULT_MODEL, timeout=300, max_messag
     resp.raise_for_status()
     data = resp.json()
     message = data.get("message") or {}
-    return message.get("content", "").strip()
+    content = message.get("content", "").strip()
+    timing = {
+        "total_ms": round(data.get("total_duration", 0) / 1e6),
+        "eval_ms": round(data.get("eval_duration", 0) / 1e6),
+        "load_ms": round(data.get("load_duration", 0) / 1e6),
+    }
+    return content, timing
 
 
 def warm_model(model, keep_alive="30m", timeout=120):
