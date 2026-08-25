@@ -57,10 +57,22 @@ Icono de **servidor** (`ph-server`) en el header:
 | Acción | Qué hace |
 |---|---|
 | **Recargar modelo** | Pre-carga el modelo elegido en memoria (acelera la primera respuesta). |
+| **Descargar modelo** | Libera el modelo de la memoria de Ollama (libera la RAM). |
 | **Reiniciar servidor** | Detiene y relanza la app automáticamente (la página se recarga). |
 | **Detener procesos** | Detiene la app (Ollama sigue corriendo). Relánzala con `run.sh` / `start_windows.bat`. |
 
 El panel inferior de la card muestra **estadísticas en vivo**: uptime, CPU, RAM y modelo activo (refresco cada ~4 s).
+
+## Optimizar el uso de RAM
+
+El modelo de visión cargado por Ollama ocupa varios GB de RAM. Consejos:
+
+- **Descargar modelo** (botón del header) libera la memoria al instante cuando termines.
+- El modelo se queda en RAM un máximo de **5 minutos** sin uso (configurable con
+  `OLLAMA_KEEP_ALIVE`, ej. `OLLAMA_KEEP_ALIVE=2m` o `0` para descargar al instante).
+- Si ves el aviso de **RAM alta** (superior al 90 %), usa "Descargar modelo" o cierra otros programas.
+- Si el modelo no puede cargarse por falta de memoria, la app muestra un mensaje claro
+  (no un error 500) indicándote que liberes RAM.
 
 ## Configuración
 
