@@ -136,6 +136,12 @@
     <div class="flex-1 p-4 lg:p-6 overflow-hidden flex flex-col">
       <div class="flex-1 bg-app-sidebar rounded-[1.5rem] border border-app-border flex flex-col overflow-hidden shadow-2xl relative">
 
+        <!-- Tabs -->
+        <div class="flex items-center gap-1 px-4 lg:px-6 pt-4 pb-0 shrink-0">
+          <button id="tab-conversar" class="tab-btn active px-4 py-2 rounded-t-lg text-sm font-medium"><i class="ph ph-chats-circle mr-1.5"></i>Conversar</button>
+          <button id="tab-mockup" class="tab-btn px-4 py-2 rounded-t-lg text-sm font-medium"><i class="ph ph-palette mr-1.5"></i>Mockups</button>
+        </div>
+
         <!-- Empty state / start form -->
         <div id="formPanel" class="flex-1 overflow-y-auto flex items-center justify-center p-6">
           <div class="w-full max-w-md">
@@ -192,6 +198,46 @@
               </button>
             </div>
             <p class="text-[11px] text-app-muted mt-2.5 text-center">Image Descripter puede cometer errores. Verifica la información importante.</p>
+          </div>
+        </div>
+
+        <!-- Mockup generator -->
+        <div id="mockupPanel" class="flex-1 flex flex-col min-h-0 hidden">
+          <div class="flex-1 overflow-y-auto px-6 lg:px-12 py-8 flex flex-col">
+            <div class="max-w-3xl w-full mx-auto">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-xl bg-app-panel border border-app-border flex items-center justify-center text-app-muted">
+                  <i class="ph ph-palette text-lg"></i>
+                </div>
+                <div>
+                  <h3 class="text-base font-semibold tracking-tight">Generador de mockups</h3>
+                  <p class="text-xs text-app-muted">Describe un diseño y el modelo generará un HTML/CSS funcional para previsualizarlo.</p>
+                </div>
+              </div>
+              <p class="text-[11px] text-app-muted mb-4">Modelo: <span class="text-app-text font-medium">qwen2.5-coder:3b</span> · usa <b>Descargar modelo</b> del header para liberar su RAM al terminar.</p>
+
+              <div class="flex flex-wrap gap-2 mb-3">
+                <button class="chip" data-mockup-chip="Landing page moderna para un restaurante con hero, menú y reservas">Landing restaurante</button>
+                <button class="chip" data-mockup-chip="Dashboard con tarjetas de métricas, gráfica de barras y tabla de usuarios">Dashboard</button>
+                <button class="chip" data-mockup-chip="Página de login minimalista con formulario centrado y tema oscuro">Login</button>
+                <button class="chip" data-mockup-chip="Tienda online de ropa con grid de productos y carrito">Tienda online</button>
+              </div>
+
+              <textarea id="mockup-prompt" rows="4" placeholder="Ej: Página de inicio para una app de productividad, con sidebar, lista de tareas y botón de crear…" class="w-full bg-app-bg border border-app-border rounded-xl px-4 py-3 text-sm text-app-text placeholder-app-muted focus:outline-none focus:border-app-primary transition-colors resize-none"></textarea>
+
+              <button id="btn-mockup" class="mt-3 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-app-primary hover:bg-indigo-600 text-white text-sm font-semibold transition-colors shadow-md shadow-indigo-500/20">
+                <span class="spinner hidden"></span>
+                <span class="label">Generar mockup</span>
+              </button>
+              <p id="mockup-status" class="text-xs text-app-muted mt-2 min-h-[1em]"></p>
+
+              <div id="mockup-actions" class="hidden mt-4 flex flex-wrap gap-2">
+                <button id="btn-mockup-copy" class="px-3 py-1.5 rounded-lg bg-app-panel border border-app-border text-xs font-medium text-app-muted hover:text-white hover:border-app-muted transition-colors"><i class="ph ph-copy mr-1"></i>Copiar HTML</button>
+                <button id="btn-mockup-download" class="px-3 py-1.5 rounded-lg bg-app-panel border border-app-border text-xs font-medium text-app-muted hover:text-white hover:border-app-muted transition-colors"><i class="ph ph-download-simple mr-1"></i>Descargar .html</button>
+                <button id="btn-mockup-open" class="px-3 py-1.5 rounded-lg bg-app-panel border border-app-border text-xs font-medium text-app-muted hover:text-white hover:border-app-muted transition-colors"><i class="ph ph-arrow-square-out mr-1"></i>Abrir en pestaña</button>
+              </div>
+            </div>
+            <iframe id="mockup-preview" sandbox="allow-scripts" class="hidden mt-6 w-full flex-1 min-h-[480px] bg-white rounded-xl border border-app-border"></iframe>
           </div>
         </div>
 

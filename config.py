@@ -16,6 +16,9 @@ MODEL_META = [
 ]
 AVAILABLE_MODELS = [m["value"] for m in MODEL_META]
 
+# Modelo de texto dedicado a generar código/mockups (no ve imágenes).
+MOCKUP_MODEL = os.environ.get("OLLAMA_MOCKUP_MODEL", "qwen2.5-coder:3b")
+
 # --- Servidor ---
 APP_HOST = os.environ.get("APP_HOST", "0.0.0.0")
 PORT = 5000

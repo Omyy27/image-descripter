@@ -9,6 +9,7 @@ Mini app web que **conversa con un modelo de visión local (Ollama)** sobre tus 
 - **Conversaciones guardadas temporalmente** en `sessionStorage` del navegador (hasta 10, con panel lateral y buscador).
 - **Respuestas con markdown** (listas, código, tablas) y **tiempo de respuesta** del modelo (total + evaluación).
 - **Controles del servidor** en el header (recargar modelo, reiniciar, detener) y **estadísticas en vivo** (uptime, CPU, RAM, modelo).
+- **Generador de mockups**: en la pestaña **Mockups** describe un diseño y el modelo de código local (`qwen2.5-coder:3b`) genera un HTML/CSS funcional con vista previa y opciones Copiar / Descargar / Abrir.
 - **Lanzadores de un clic**: WSL2 (`run.sh` / `start.bat`) y Windows nativo (`.exe`).
 - **Privacidad**: el modelo corre localmente; las imágenes no salen de tu máquina.
 
@@ -16,6 +17,7 @@ Mini app web que **conversa con un modelo de visión local (Ollama)** sobre tus 
 
 - Linux/WSL2 o Windows.
 - [Ollama](https://ollama.com) instalado con los modelos de visión `qwen2.5vl:3b` y `gemma3:4b`.
+- Opcional para Mockups: `ollama pull qwen2.5-coder:3b` (~2 GB).
 - Python 3.10+ (solo para desarrollo y para compilar el `.exe`).
 - ~4 GB de RAM libre para el modelo `qwen2.5vl:3b`.
 - **Internet en la primera carga**: los estilos e iconos (Tailwind, Phosphor, Google Fonts) y las librerías de markdown (`marked`, `DOMPurify`) se cargan desde CDN.
@@ -63,11 +65,25 @@ Icono de **servidor** (`ph-server`) en el header:
 
 El panel inferior de la card muestra **estadísticas en vivo**: uptime, CPU, RAM y modelo activo (refresco cada ~4 s).
 
+### Generar mockups (HTML/CSS)
+
+Pestaña **Mockups** (arriba de la card): una herramienta de codificación IA de respaldo con el modelo de texto `qwen2.5-coder:3b`.
+
+1. Escribe el diseño que quieres (o usa los chips de ejemplo) y pulsa **Generar mockup**.
+2. El modelo devuelve un HTML/CSS autocontenido que se previsualiza en un `<iframe>` aislado (`sandbox`).
+3. Con **Copiar HTML**, **Descargar .html** o **Abrir en pestaña** te llevas el mockup.
+
+Notas:
+- Requiere el modelo: `ollama pull qwen2.5-coder:3b` (opcional, solo si quieres usar Mockups).
+- Es un modelo de **texto** (no ve imágenes) y **no** aparece en el selector de visión.
+- Cámbialo con la variable de entorno `OLLAMA_MOCKUP_MODEL`.
+- Usa **Descargar modelo** del header para liberar su RAM al terminar (libera los dos modelos).
+
 ## Optimizar el uso de RAM
 
 El modelo de visión cargado por Ollama ocupa varios GB de RAM. Consejos:
 
-- **Descargar modelo** (botón del header) libera la memoria al instante cuando termines.
+- **Descargar modelo** (botón del header) libera la memoria al instante cuando termines (descarga el modelo de visión y el de mockup).
 - El modelo se queda en RAM un máximo de **5 minutos** sin uso (configurable con
   `OLLAMA_KEEP_ALIVE`, ej. `OLLAMA_KEEP_ALIVE=2m` o `0` para descargar al instante).
 - Si ves el aviso de **RAM alta** (superior al 90 %), usa "Descargar modelo" o cierra otros programas.
@@ -84,6 +100,7 @@ El modelo de visión cargado por Ollama ocupa varios GB de RAM. Consejos:
 
 - Para añadir otro modelo: `ollama pull <modelo>` y agrégalo a `MODEL_META` en `config.py`
   (el frontend lo muestra automáticamente vía `GET /api/models`).
+- El modelo de mockups es `qwen2.5-coder:3b`; cámbialo con `OLLAMA_MOCKUP_MODEL`.
 - La app escucha en `0.0.0.0:5000` (variables `APP_HOST`/`PORT`); en Windows nativo liga a `127.0.0.1` (solo acceso local).
 - Si Ollama no está en `localhost:11434`, usa la variable `OLLAMA_HOST` (ej. `OLLAMA_HOST=http://192.168.1.10:11434`).
 

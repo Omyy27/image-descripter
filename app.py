@@ -21,12 +21,15 @@ from config import (
     DEFAULT_MODEL,
     MAX_CONTENT_LENGTH,
     MODEL_META,
+    MOCKUP_MODEL,
     PORT,
 )
 from image_utils import prepare_image
 from ollama_client import (
     chat_image,
     describe_image,
+    extract_html,
+    generate_code,
     is_oom_error,
     ping_ollama,
     unload_model,
@@ -156,6 +159,27 @@ def chat():
         return jsonify({"error": f"Error en el chat: {_friendly_error(exc)}"}), 500
 
 
+@app.route("/api/mockup", methods=["POST"])
+def mockup():
+    model = (request.form.get("model") or "").strip()
+    if model and model != MOCKUP_MODEL:
+        return jsonify({"error": f"Modelo de mockup inválido. Usa {MOCKUP_MODEL}."}), 400
+
+    prompt = (request.form.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify({"error": "Escribe qué diseño quieres generar."}), 400
+
+    try:
+        text, timing = generate_code(prompt, model=MOCKUP_MODEL)
+        html = extract_html(text)
+        if not html:
+            return jsonify({"error": "El modelo no devolvió código HTML."}), 500
+        return jsonify({"html": html, "timing": timing})
+    except Exception as exc:
+        app.logger.exception("Error generando el mockup")
+        return jsonify({"error": f"Error generando el mockup: {_friendly_error(exc)}"}), 500
+
+
 @app.route("/api/stats", methods=["GET"])
 def stats():
     uptime = round(time.time() - START_TIME)
@@ -195,7 +219,9 @@ def unload_model_route():
     model = _pick_model(request.form.get("model") or "")
     try:
         unload_model(model)
-        return jsonify({"ok": True, "message": f"Modelo {model} detenido (liberado de la memoria)."})
+        if MOCKUP_MODEL != model:
+            unload_model(MOCKUP_MODEL)
+        return jsonify({"ok": True, "message": f"Modelos {model} y {MOCKUP_MODEL} detenidos (liberados de la memoria)."})
     except Exception as exc:
         app.logger.exception("Error descargando el modelo")
         return jsonify({"ok": False, "error": f"Error descargando el modelo: {_friendly_error(exc)}"}), 500

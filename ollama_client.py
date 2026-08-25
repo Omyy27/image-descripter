@@ -7,12 +7,23 @@ import requests
 from config import (
     DEFAULT_MODEL,
     KEEP_ALIVE,
+    MOCKUP_MODEL,
     OLLAMA_API_CHAT,
     OLLAMA_API_GENERATE,
     OLLAMA_API_TAGS,
     TIMEOUT_CHAT,
     TIMEOUT_PING,
     TIMEOUT_WARM,
+)
+
+
+SYSTEM_CODE = (
+    "Eres un experto en diseño frontend. Genera SOLO un documento HTML completo y "
+    "autocontenido (con CSS incrustado en <style> y, si hace falta, JS en <script>) "
+    "que sirva como mockup del diseño solicitado. Usa estilos modernos, responsive y "
+    "limpios, sin dependencias externas. NO uses bloques de código (```), NO añadas "
+    "explicaciones ni texto fuera del HTML. El documento debe empezar por "
+    "<!DOCTYPE html>."
 )
 
 
@@ -121,3 +132,45 @@ def is_oom_error(exc: Exception) -> bool:
         or "oom" in text
         or "signal: killed" in text
     )
+
+
+def generate_code(
+    prompt: str,
+    model: str = MOCKUP_MODEL,
+    timeout: int = TIMEOUT_CHAT,
+) -> tuple[str, dict[str, int]]:
+    """Genera un mockup HTML/CSS con el modelo de código (solo texto)."""
+    messages = [
+        {"role": "system", "content": SYSTEM_CODE},
+        {"role": "user", "content": prompt.strip()},
+    ]
+    payload = {
+        "model": model,
+        "messages": messages,
+        "stream": False,
+        "keep_alive": KEEP_ALIVE,
+    }
+    resp = requests.post(OLLAMA_API_CHAT, json=payload, timeout=timeout)
+    resp.raise_for_status()
+    data = resp.json()
+    message = data.get("message") or {}
+    content = message.get("content", "").strip()
+    timing = {
+        "total_ms": round(data.get("total_duration", 0) / 1e6),
+        "eval_ms": round(data.get("eval_duration", 0) / 1e6),
+        "load_ms": round(data.get("load_duration", 0) / 1e6),
+    }
+    return content, timing
+
+
+def extract_html(text: str) -> str:
+    """Extrae el HTML del texto del modelo (quita fences ```html ... ```)."""
+    t = (text or "").strip()
+    if t.startswith("```"):
+        lines = t.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        t = "\n".join(lines).strip()
+    return t

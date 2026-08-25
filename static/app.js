@@ -689,4 +689,103 @@
         ctrlMsg('Error: ' + err.message, true);
       }
     });
+
+    // --- Tabs Conversar / Mockups ---
+    const tabConversar = $('tab-conversar');
+    const tabMockup = $('tab-mockup');
+    const mockupPanel = $('mockupPanel');
+
+    function switchTab(tab) {
+      const toMockup = tab === 'mockup';
+      tabConversar.classList.toggle('active', !toMockup);
+      tabMockup.classList.toggle('active', toMockup);
+      if (toMockup) {
+        formPanel.classList.add('hidden');
+        chatArea.classList.add('hidden');
+        mockupPanel.classList.remove('hidden');
+      } else {
+        mockupPanel.classList.add('hidden');
+        if (chatArea.classList.contains('hidden')) formPanel.classList.remove('hidden');
+      }
+    }
+
+    tabConversar.addEventListener('click', () => switchTab('conversar'));
+    tabMockup.addEventListener('click', () => switchTab('mockup'));
+
+    // --- Generador de mockups ---
+    let lastMockupHtml = '';
+    const mockupStatus = $('mockup-status');
+    const mockupActions = $('mockup-actions');
+    const mockupPreview = $('mockup-preview');
+
+    function mockupMsg(text, isError) {
+      mockupStatus.textContent = text;
+      mockupStatus.className = 'text-xs mt-2 min-h-[1em] ' + (isError ? 'text-rose-400' : 'text-app-muted');
+    }
+
+    document.querySelectorAll('[data-mockup-chip]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        $('mockup-prompt').value = chip.dataset.mockupChip;
+      });
+    });
+
+    $('btn-mockup').addEventListener('click', async () => {
+      const prompt = $('mockup-prompt').value.trim();
+      if (!prompt) { mockupMsg('Escribe qué diseño quieres generar.', true); return; }
+      const btn = $('btn-mockup');
+      const spinner = btn.querySelector('.spinner');
+      const t0 = performance.now();
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+      btn.querySelector('.label').textContent = 'Generando…';
+      mockupMsg('Generando… (puede tardar ~30 s con qwen2.5-coder:3b)');
+      try {
+        const fd = new FormData();
+        fd.append('prompt', prompt);
+        const res = await fetch('/api/mockup', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error del servidor');
+        lastMockupHtml = data.html || '';
+        if (!lastMockupHtml) throw new Error('El modelo no devolvió código HTML.');
+        mockupPreview.srcdoc = lastMockupHtml;
+        mockupPreview.classList.remove('hidden');
+        mockupActions.classList.remove('hidden');
+        const elapsed = ((data.timing && data.timing.total_ms != null) ? data.timing.total_ms : (performance.now() - t0)) / 1000;
+        mockupMsg('Mockup listo en ' + elapsed.toFixed(1) + ' s.');
+      } catch (err) {
+        mockupMsg('Error: ' + err.message, true);
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        btn.querySelector('.label').textContent = 'Generar mockup';
+      }
+    });
+
+    $('btn-mockup-copy').addEventListener('click', async () => {
+      if (!lastMockupHtml) return;
+      try {
+        await navigator.clipboard.writeText(lastMockupHtml);
+        mockupMsg('HTML copiado al portapapeles.');
+      } catch (err) {
+        mockupMsg('No se pudo copiar: ' + err.message, true);
+      }
+    });
+
+    $('btn-mockup-download').addEventListener('click', () => {
+      if (!lastMockupHtml) return;
+      const blob = new Blob([lastMockupHtml], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'mockup.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    });
+
+    $('btn-mockup-open').addEventListener('click', () => {
+      if (!lastMockupHtml) return;
+      const blob = new Blob([lastMockupHtml], { type: 'text/html' });
+      window.open(URL.createObjectURL(blob), '_blank');
+    });
   

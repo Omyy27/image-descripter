@@ -268,14 +268,14 @@ def test_unload_model_route(client, monkeypatch):
     captured = {}
 
     def fake(model, timeout=120):
-        captured["model"] = model
+        captured.setdefault("models", []).append(model)
         return True
 
     monkeypatch.setattr(appmod, "unload_model", fake)
     r = client.post("/api/unload-model", data={"model": "qwen2.5vl:3b"})
     assert r.status_code == 200
     assert r.get_json()["ok"] is True
-    assert captured["model"] == "qwen2.5vl:3b"
+    assert captured["models"] == ["qwen2.5vl:3b", appmod.MOCKUP_MODEL]
 
 
 def test_unload_model_route_error(client, monkeypatch):
@@ -326,3 +326,83 @@ def test_is_oom_error():
     assert ollama_client.is_oom_error(Exception("out of memory"))
     assert ollama_client.is_oom_error(Exception("500 Server Error ... OOM"))
     assert not ollama_client.is_oom_error(Exception("model not found"))
+
+
+# --- /api/mockup ---
+
+
+def test_mockup_sin_prompt(client):
+    r = client.post("/api/mockup", data={"prompt": "   "})
+    assert r.status_code == 400
+
+
+def test_mockup_modelo_invalido(client):
+    r = client.post("/api/mockup", data={"prompt": "x", "model": "otro:1b"})
+    assert r.status_code == 400
+
+
+def test_mockup_ok(client, monkeypatch):
+    html = "```html\n<!DOCTYPE html>\n<html><body><h1>Hola</h1></body></html>\n```"
+
+    def fake(prompt, model=None, timeout=300):
+        return html, {"total_ms": 500, "eval_ms": 100, "load_ms": 0}
+
+    monkeypatch.setattr(appmod, "generate_code", fake)
+    r = client.post("/api/mockup", data={"prompt": "landing"})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["html"] == "<!DOCTYPE html>\n<html><body><h1>Hola</h1></body></html>"
+    assert data["timing"]["total_ms"] == 500
+
+
+def test_mockup_salida_vacia(client, monkeypatch):
+    def fake(prompt, model=None, timeout=300):
+        return "   ", {"total_ms": 0, "eval_ms": 0, "load_ms": 0}
+
+    monkeypatch.setattr(appmod, "generate_code", fake)
+    r = client.post("/api/mockup", data={"prompt": "landing"})
+    assert r.status_code == 500
+
+
+def test_mockup_error_oom(client, monkeypatch):
+    def boom(*a, **k):
+        raise ollama_client.requests.HTTPError("llama-server process has terminated: signal: killed")
+
+    monkeypatch.setattr(appmod, "generate_code", boom)
+    r = client.post("/api/mockup", data={"prompt": "landing"})
+    assert r.status_code == 500
+    assert "No hay suficiente memoria" in r.get_json()["error"]
+
+
+# --- generate_code / extract_html ---
+
+
+def test_generate_code_payload(monkeypatch):
+    captured = {}
+
+    class FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"message": {"content": "```html\n<x></x>\n```"}, "total_duration": 1, "eval_duration": 1, "load_duration": 0}
+
+    def fake_post(url, **kw):
+        captured["url"] = url
+        captured["payload"] = kw["json"]
+        return FakeResp()
+
+    monkeypatch.setattr(ollama_client.requests, "post", fake_post)
+    text, timing = ollama_client.generate_code("landing")
+    assert ollama_client.extract_html(text) == "<x></x>"
+    assert captured["url"] == ollama_client.OLLAMA_API_CHAT
+    assert captured["payload"]["model"] == ollama_client.MOCKUP_MODEL
+    assert captured["payload"]["messages"][0]["role"] == "system"
+    assert captured["payload"]["messages"][1]["content"] == "landing"
+    assert "keep_alive" in captured["payload"]
+
+
+def test_extract_html():
+    assert ollama_client.extract_html("```html\n<p>a</p>\n```") == "<p>a</p>"
+    assert ollama_client.extract_html("<!DOCTYPE html><p>a</p>") == "<!DOCTYPE html><p>a</p>"
+    assert ollama_client.extract_html("```html\n<!DOCTYPE html>\n<p>a</p>\n```") == "<!DOCTYPE html>\n<p>a</p>"

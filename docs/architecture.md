@@ -25,11 +25,13 @@ graph TD
         S --> IMG
         S --> OC
         S --> STATS["/api/stats · psutil"]
-        S --> CTRL["/api/reload-model · /api/restart · /api/stop"]
+        S --> CTRL["/api/reload-model · /api/unload-model · /api/restart · /api/stop"]
+        S --> MOCK["/api/mockup · qwen2.5-coder:3b"]
     end
 
     OC -- "HTTP localhost:11434 /api/chat · /api/generate · /api/tags" --> OLLAMA[(Ollama)]
     OLLAMA -- "qwen2.5vl:3b · gemma3:4b" --> MODELS[(Modelos de visión)]
+    OLLAMA -- "qwen2.5-coder:3b" --> CODEMODEL[(Modelo de código)]
 
     TEMPLATES[templates/index.html] --> UI
 ```
@@ -57,6 +59,7 @@ graph TD
 | **CDNs** | Tailwind, Phosphor, Google Fonts, marked, DOMPurify (versiones fijadas) | Diseño sin build-step; se cachean en el navegador. **Requiere internet en la primera carga.** |
 | **Configuración** | `config.py` centralizado | Un solo lugar para modelos, puertos, límites y timeouts. |
 | **Modelos disponibles** | `GET /api/models` (desde `config.MODEL_META`) | El frontend renderiza los `<option>` dinámicamente → sin duplicación. |
+| **Mockups (HTML/CSS)** | Pestaña Mockups → `POST /api/mockup` → `ollama_client.generate_code()` con `qwen2.5-coder:3b` | Herramienta de codificación IA de respaldo; modelo de texto dedicado (`MOCKUP_MODEL`), no aparece en el selector de visión. Preview en `<iframe sandbox="allow-scripts">`. |
 | **Reiniciar/Detener** | Subproceso desacoplado por PID (por plataforma) | Evita matar el propio helper; funciona en Linux/WSL2 y Windows (.exe). |
 | **Distribución Windows** | PyInstaller `--onefile` (`ImageDescripter.exe`) | Sin Python en la máquina destino; empaqueta `templates/` y `static/`. |
 
@@ -64,7 +67,7 @@ graph TD
 
 - **Backend**: Python 3.11+, Flask 3, waitress, requests, Pillow, psutil.
 - **Frontend**: HTML + Tailwind (CDN), Phosphor Icons, Inter/JetBrains Mono, `marked`, `DOMPurify`.
-- **IA**: Ollama local (`qwen2.5vl:3b`, `gemma3:4b`).
+- **IA**: Ollama local (visión: `qwen2.5vl:3b`, `gemma3:4b`; código: `qwen2.5-coder:3b`).
 - **Pruebas**: pytest (test client de Flask + monkeypatch, sin red).
 - **Opcional**: Docker Compose (app + ollama), Makefile.
 
