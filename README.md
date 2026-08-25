@@ -4,7 +4,7 @@ Mini app web que **conversa con un modelo de visión local (Ollama)** sobre tus 
 
 ## Características
 
-- **Chat multi-turno** con 3 modelos de visión elegibles desde el header: `qwen2.5vl:3b` (mejor calidad), `gemma3:4b` (ligero) y `moondream` (muy ligero, ~1.7 GB).
+- **Chat multi-turno** con 2 modelos de visión elegibles desde el header: `qwen2.5vl:3b` (mejor calidad) y `gemma3:4b` (ligero).
 - **Adjunta imágenes en cualquier momento** del chat (se comprimen en el navegador antes de enviarse).
 - **Conversaciones guardadas temporalmente** en `sessionStorage` del navegador (hasta 10, con panel lateral y buscador).
 - **Respuestas con markdown** (listas, código, tablas) y **tiempo de respuesta** del modelo (total + evaluación).
@@ -15,7 +15,7 @@ Mini app web que **conversa con un modelo de visión local (Ollama)** sobre tus 
 ## Requisitos
 
 - Linux/WSL2 o Windows.
-- [Ollama](https://ollama.com) instalado con los modelos de visión `qwen2.5vl:3b`, `gemma3:4b` y `moondream` (opcional).
+- [Ollama](https://ollama.com) instalado con los modelos de visión `qwen2.5vl:3b` y `gemma3:4b`.
 - Python 3.10+ (solo para desarrollo y para compilar el `.exe`).
 - ~4 GB de RAM libre para el modelo `qwen2.5vl:3b`.
 - **Internet en la primera carga**: los estilos e iconos (Tailwind, Phosphor, Google Fonts) y las librerías de markdown (`marked`, `DOMPurify`) se cargan desde CDN.
@@ -60,17 +60,7 @@ Icono de **servidor** (`ph-server`) en el header:
 | **Reiniciar servidor** | Detiene y relanza la app automáticamente (la página se recarga). |
 | **Detener procesos** | Detiene la app (Ollama sigue corriendo). Relánzala con `run.sh` / `start_windows.bat`. |
 
-El panel inferior de la card muestra **estadísticas en vivo**: uptime, CPU, RAM y modelo activo (refresco cada ~4 s). Si la RAM supera el 90 %, aparece un aviso.
-
-## Optimizar uso de RAM
-
-- **Detener modelo**: botón en el dropdown de controles del servidor → libera la RAM de Ollama al instante (`keep_alive: 0`).
-- **Retención del modelo**: el modelo se mantiene en memoria durante `KEEP_ALIVE` tras cada uso. Por defecto **5 min**; cámbialo con la variable de entorno `OLLAMA_KEEP_ALIVE` (ej. `OLLAMA_KEEP_ALIVE=0` descarga tras cada respuesta — más RAM libre, pero recarga en cada mensaje):
-  ```bash
-  OLLAMA_KEEP_ALIVE=2m ./run.sh
-  ```
-- **Modelo ligero**: `moondream` (~1.7 GB en RAM) para priorizar memoria sobre calidad. Descárgalo con `ollama pull moondream`.
-- **Contexto**: `num_ctx` fijado en 4096 (`config.NUM_CTX`); bajarlo ahorra algo de RAM pero puede truncar historiales largos.
+El panel inferior de la card muestra **estadísticas en vivo**: uptime, CPU, RAM y modelo activo (refresco cada ~4 s).
 
 ## Configuración
 

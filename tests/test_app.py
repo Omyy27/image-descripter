@@ -155,49 +155,6 @@ def test_stats_con_psutil(client, monkeypatch):
     assert d["ram"]["percent"] == 10
 
 
-# --- /api/unload-model ---
-
-
-def test_unload_model_ok(client, monkeypatch):
-    captured = {}
-    monkeypatch.setattr(appmod, "unload_model", lambda model: captured.update(model=model) or True)
-    r = client.post("/api/unload-model", data={"model": "qwen2.5vl:3b"})
-    assert r.status_code == 200
-    assert r.get_json()["ok"] is True
-    assert captured["model"] == "qwen2.5vl:3b"
-
-
-def test_unload_model_error(client, monkeypatch):
-    def boom(*a, **k):
-        raise RuntimeError("boom")
-
-    monkeypatch.setattr(appmod, "unload_model", boom)
-    r = client.post("/api/unload-model", data={"model": "qwen2.5vl:3b"})
-    assert r.status_code == 500
-    assert r.get_json()["ok"] is False
-
-
-def test_chat_image_payload_keep_alive_num_ctx(monkeypatch):
-    captured = {}
-
-    class FakeResp:
-        def raise_for_status(self):
-            pass
-
-        def json(self):
-            return {"message": {"content": "ok"}, "total_duration": 0, "eval_duration": 0, "load_duration": 0}
-
-    def fake_post(url, **kw):
-        captured["payload"] = kw["json"]
-        return FakeResp()
-
-    monkeypatch.setattr(ollama_client.requests, "post", fake_post)
-    ollama_client.chat_image(None, [{"role": "user", "content": "hola"}])
-    payload = captured["payload"]
-    assert payload["keep_alive"]
-    assert payload["options"]["num_ctx"] == 4096
-
-
 # --- ollama_client.chat_image (guard + timing) ---
 
 
@@ -231,6 +188,7 @@ def test_chat_image_guard(monkeypatch):
     payload = captured["payload"]
     assert len(payload["messages"]) == 20
     assert payload["messages"][0]["images"] == ["x"]
+    assert payload["keep_alive"] == ollama_client.KEEP_ALIVE
 
 
 def test_chat_image_image_b64_fallback(monkeypatch):
@@ -301,3 +259,70 @@ def test_ping_ollama_error(monkeypatch):
 
     monkeypatch.setattr(ollama_client.requests, "get", boom)
     assert ollama_client.ping_ollama() is False
+
+
+# --- /api/unload-model ---
+
+
+def test_unload_model_route(client, monkeypatch):
+    captured = {}
+
+    def fake(model, timeout=120):
+        captured["model"] = model
+        return True
+
+    monkeypatch.setattr(appmod, "unload_model", fake)
+    r = client.post("/api/unload-model", data={"model": "qwen2.5vl:3b"})
+    assert r.status_code == 200
+    assert r.get_json()["ok"] is True
+    assert captured["model"] == "qwen2.5vl:3b"
+
+
+def test_unload_model_route_error(client, monkeypatch):
+    def boom(model, timeout=120):
+        raise ollama_client.requests.HTTPError("llama-server process has terminated: signal: killed")
+
+    monkeypatch.setattr(appmod, "unload_model", boom)
+    r = client.post("/api/unload-model", data={"model": "qwen2.5vl:3b"})
+    assert r.status_code == 500
+    assert "No hay suficiente memoria" in r.get_json()["error"]
+
+
+# --- mensaje OOM amigable en /api/chat y /describe ---
+
+
+def test_chat_error_oom_amigable(client, monkeypatch):
+    def boom(*a, **k):
+        raise ollama_client.requests.HTTPError("500 Server Error for url: /api/chat: llama-server process has terminated: signal: killed")
+
+    monkeypatch.setattr(appmod, "chat_image", boom)
+    r = client.post(
+        "/api/chat",
+        data={"model": "qwen2.5vl:3b", "messages": json.dumps([{"role": "user", "content": "x"}])},
+    )
+    assert r.status_code == 500
+    assert "No hay suficiente memoria" in r.get_json()["error"]
+    assert "500 Server Error" not in r.get_json()["error"]
+
+
+def test_describe_error_oom_amigable(client, monkeypatch):
+    def boom(*a, **k):
+        raise ollama_client.requests.HTTPError("out of memory")
+
+    monkeypatch.setattr(appmod, "describe_image", boom)
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10)).save(buf, format="PNG")
+    buf.seek(0)
+    r = client.post("/describe", data={"image": (buf, "x.png")}, content_type="multipart/form-data")
+    assert r.status_code == 500
+    assert "No hay suficiente memoria" in r.get_json()["error"]
+
+
+# --- is_oom_error ---
+
+
+def test_is_oom_error():
+    assert ollama_client.is_oom_error(Exception("llama-server process has terminated: signal: killed"))
+    assert ollama_client.is_oom_error(Exception("out of memory"))
+    assert ollama_client.is_oom_error(Exception("500 Server Error ... OOM"))
+    assert not ollama_client.is_oom_error(Exception("model not found"))

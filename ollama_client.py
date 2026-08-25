@@ -7,7 +7,6 @@ import requests
 from config import (
     DEFAULT_MODEL,
     KEEP_ALIVE,
-    NUM_CTX,
     OLLAMA_API_CHAT,
     OLLAMA_API_GENERATE,
     OLLAMA_API_TAGS,
@@ -60,13 +59,7 @@ def chat_image(
     if len(msgs) > max_messages:
         msgs = [msgs[0]] + msgs[-(max_messages - 1):]
 
-    payload = {
-        "model": model,
-        "messages": msgs,
-        "stream": False,
-        "keep_alive": KEEP_ALIVE,
-        "options": {"num_ctx": NUM_CTX},
-    }
+    payload = {"model": model, "messages": msgs, "stream": False, "keep_alive": KEEP_ALIVE}
     resp = requests.post(OLLAMA_API_CHAT, json=payload, timeout=timeout)
     resp.raise_for_status()
     data = resp.json()
@@ -117,3 +110,14 @@ def unload_model(model: str, timeout: int = TIMEOUT_WARM) -> bool:
     resp = requests.post(OLLAMA_API_GENERATE, json=payload, timeout=timeout)
     resp.raise_for_status()
     return True
+
+
+def is_oom_error(exc: Exception) -> bool:
+    """Detecta si la excepción de Ollama corresponde a falta de memoria (OOM)."""
+    text = str(exc).lower()
+    return (
+        "llama-server process has terminated" in text
+        or "out of memory" in text
+        or "oom" in text
+        or "signal: killed" in text
+    )

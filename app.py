@@ -27,6 +27,7 @@ from image_utils import prepare_image
 from ollama_client import (
     chat_image,
     describe_image,
+    is_oom_error,
     ping_ollama,
     unload_model,
     warm_model,
@@ -68,6 +69,16 @@ def _pick_model(raw: str) -> str:
     return model if model in AVAILABLE_MODELS else DEFAULT_MODEL
 
 
+def _friendly_error(exc: Exception) -> str:
+    if is_oom_error(exc):
+        return (
+            "No hay suficiente memoria para cargar el modelo. "
+            "Cierra otros programas o usa un modelo más ligero, y pulsa "
+            "'Descargar modelo' para liberar la RAM."
+        )
+    return str(exc)
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -101,7 +112,7 @@ def describe():
         return jsonify({"description": description})
     except Exception as exc:
         app.logger.exception("Error generando la descripción")
-        return jsonify({"error": f"Error generando la descripción: {exc}"}), 500
+        return jsonify({"error": f"Error generando la descripción: {_friendly_error(exc)}"}), 500
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -142,7 +153,7 @@ def chat():
         return jsonify({"reply": reply, "timing": timing})
     except Exception as exc:
         app.logger.exception("Error en el chat")
-        return jsonify({"error": f"Error en el chat: {exc}"}), 500
+        return jsonify({"error": f"Error en el chat: {_friendly_error(exc)}"}), 500
 
 
 @app.route("/api/stats", methods=["GET"])
@@ -176,7 +187,7 @@ def reload_model():
         return jsonify({"ok": True, "message": f"Modelo {model} pre-cargado en memoria."})
     except Exception as exc:
         app.logger.exception("Error pre-cargando el modelo")
-        return jsonify({"ok": False, "error": f"Error pre-cargando el modelo: {exc}"}), 500
+        return jsonify({"ok": False, "error": f"Error pre-cargando el modelo: {_friendly_error(exc)}"}), 500
 
 
 @app.route("/api/unload-model", methods=["POST"])
@@ -187,7 +198,7 @@ def unload_model_route():
         return jsonify({"ok": True, "message": f"Modelo {model} detenido (liberado de la memoria)."})
     except Exception as exc:
         app.logger.exception("Error descargando el modelo")
-        return jsonify({"ok": False, "error": f"Error descargando el modelo: {exc}"}), 500
+        return jsonify({"ok": False, "error": f"Error descargando el modelo: {_friendly_error(exc)}"}), 500
 
 
 @app.route("/api/restart", methods=["POST"])
