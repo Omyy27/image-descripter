@@ -288,6 +288,78 @@
       if (!busy) chatInput.focus();
     }
 
+    // --- Notificaciones del navegador ---
+    const NOTIF_KEY = 'image_descripter_notif';
+    let notifEnabled = localStorage.getItem(NOTIF_KEY) === '1';
+    let beepCtx = null;
+
+    function playBeep() {
+      try {
+        beepCtx = beepCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const osc = beepCtx.createOscillator();
+        const gain = beepCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.001, beepCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.2, beepCtx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, beepCtx.currentTime + 0.15);
+        osc.connect(gain).connect(beepCtx.destination);
+        osc.start();
+        osc.stop(beepCtx.currentTime + 0.16);
+      } catch {}
+    }
+
+    function notifyAgent(title, body) {
+      if (!notifEnabled) return;
+      if (typeof Notification === 'undefined') return;
+      if (Notification.permission !== 'granted') return;
+      if (document.hasFocus()) return;
+      try {
+        new Notification(title, { body, tag: 'agent-reply' });
+        playBeep();
+      } catch {}
+    }
+
+    function updateNotifIcon() {
+      const btn = $('btn-notif');
+      if (!btn) return;
+      const icon = btn.querySelector('.ph');
+      const canNotif = typeof Notification !== 'undefined';
+      const granted = canNotif && Notification.permission === 'granted';
+      const active = notifEnabled && granted;
+      icon.className = 'ph ' + (active ? 'ph-bell-fill notif-on text-lg' : 'ph-bell-slash text-lg');
+      btn.classList.toggle('notif-on', active);
+      if (!canNotif) {
+        btn.title = 'Este navegador no soporta notificaciones';
+      } else if (canNotif && Notification.permission === 'denied') {
+        btn.title = 'Permiso denegado. Actívalo en la configuración del sitio';
+      } else {
+        btn.title = active ? 'Notificaciones activadas' : 'Notificaciones al responder';
+      }
+    }
+
+    async function toggleNotifications() {
+      const btn = $('btn-notif');
+      if (typeof Notification === 'undefined') {
+        if (btn) btn.title = 'Este navegador no soporta notificaciones';
+        return;
+      }
+      if (!notifEnabled && Notification.permission === 'default') {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+          if (btn) btn.title = 'Permiso denegado. Actívalo en la configuración del sitio';
+          updateNotifIcon();
+          return;
+        }
+      }
+      notifEnabled = !notifEnabled;
+      localStorage.setItem(NOTIF_KEY, notifEnabled ? '1' : '0');
+      updateNotifIcon();
+    }
+
+    const btnNotif = $('btn-notif');
+    if (btnNotif) btnNotif.addEventListener('click', toggleNotifications);
+
     async function sendTurn(history, model, chat) {
       const t0 = performance.now();
       const fd = new FormData();
@@ -318,6 +390,8 @@
         saveActive();
         renderChat();
         renderSidebar();
+        const preview = data.reply.length > 120 ? data.reply.slice(0, 120) + '…' : data.reply;
+        notifyAgent('Nueva respuesta de ' + model, preview);
       } catch (err) {
         typing.remove();
         addBubble('error', 'Error: ' + err.message);
@@ -696,6 +770,7 @@
       syncStatModel();
       const chat = currentChat();
       if (chat && chat.messages.length) openChat(chat.id);
+      updateNotifIcon();
       refreshStats();
     })();
 
@@ -848,6 +923,7 @@
         mockupActions.classList.remove('hidden');
         const elapsed = ((data.timing && data.timing.total_ms != null) ? data.timing.total_ms : (performance.now() - t0)) / 1000;
         mockupMsg('Mockup listo en ' + elapsed.toFixed(1) + ' s.');
+        notifyAgent('Mockup listo', 'HTML generado (' + lastMockupHtml.length + ' caracteres)');
       } catch (err) {
         mockupMsg('Error: ' + err.message, true);
       } finally {

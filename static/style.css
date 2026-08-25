@@ -48,6 +48,7 @@
       transition: all 0.2s;
     }
     .ctrl-btn:hover { color: #fff; border-color: #9CA3AF; }
+    .notif-on { color: #6366F1 !important; }
     .ctrl-btn.danger { background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.3); color: #F43F5E; }
     .ctrl-btn.danger:hover { background: rgba(244, 63, 94, 0.2); }
     .model-dd { position: relative; }
