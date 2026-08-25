@@ -59,6 +59,8 @@ graph TD
 | **CDNs** | Tailwind, Phosphor, Google Fonts, marked, DOMPurify (versiones fijadas) | Diseño sin build-step; se cachean en el navegador. **Requiere internet en la primera carga.** |
 | **Configuración** | `config.py` centralizado | Un solo lugar para modelos, puertos, límites y timeouts. |
 | **Modelos disponibles** | `GET /api/models` (desde `config.MODEL_META`) | El frontend renderiza los `<option>` dinámicamente → sin duplicación. |
+| **Selector de modelo** | Dropdown personalizado sobre `<select>` oculto | Estética consistente (iconos, badges, check) conservando lecturas `.value` y eventos `change` del JS existente. |
+| **Guarda de visión** | `VISION_MODELS` en `config.py`; `/describe` y `/api/chat` con imágenes validan | `qwen2.5-coder:3b` es un modelo de texto; evita errores 500 si se usa con imágenes. |
 | **Mockups (HTML/CSS)** | Pestaña Mockups → `POST /api/mockup` → `ollama_client.generate_code()` con `qwen2.5-coder:3b` | Herramienta de codificación IA de respaldo; modelo de texto dedicado (`MOCKUP_MODEL`), no aparece en el selector de visión. Preview en `<iframe sandbox="allow-scripts">`. |
 | **Reiniciar/Detener** | Subproceso desacoplado por PID (por plataforma) | Evita matar el propio helper; funciona en Linux/WSL2 y Windows (.exe). |
 | **Distribución Windows** | PyInstaller `--onefile` (`ImageDescripter.exe`) | Sin Python en la máquina destino; empaqueta `templates/` y `static/`. |

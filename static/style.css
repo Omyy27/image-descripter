@@ -50,6 +50,62 @@
     .ctrl-btn:hover { color: #fff; border-color: #9CA3AF; }
     .ctrl-btn.danger { background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.3); color: #F43F5E; }
     .ctrl-btn.danger:hover { background: rgba(244, 63, 94, 0.2); }
+    .model-dd { position: relative; }
+    .model-dd-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      border: 1px solid transparent;
+      border-radius: 0.5rem;
+      padding: 0.25rem 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #E5E7EB;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .model-dd-trigger:hover { background: rgba(255,255,255,0.06); border-color: #374151; }
+    .model-dd-form .model-dd-trigger {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      background: #090D16;
+      border-color: #374151;
+      justify-content: space-between;
+    }
+    .model-dd-form .model-dd-trigger:hover { border-color: #6366F1; }
+    .model-dd-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.5rem);
+      min-width: 15rem;
+      max-height: 18rem;
+      overflow-y: auto;
+      background: #0F1524;
+      border: 1px solid #374151;
+      border-radius: 0.75rem;
+      padding: 0.375rem;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+      z-index: 40;
+    }
+    .model-dd-opt {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.625rem;
+      border-radius: 0.5rem;
+      font-size: 0.8125rem;
+      color: #D1D5DB;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .model-dd-opt:hover { background: rgba(255,255,255,0.06); }
+    .model-dd-opt.active { background: rgba(99,102,241,0.18); color: #fff; }
+    .model-dd-opt .ph { font-size: 1rem; color: #6366F1; }
+    .model-dd-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .model-dd-badge { font-size: 0.625rem; color: #9CA3AF; background: #1F2937; border: 1px solid #374151; border-radius: 9999px; padding: 0.125rem 0.5rem; white-space: nowrap; }
+    .model-dd-check { color: #6366F1; margin-left: 0.25rem; visibility: hidden; }
+    .model-dd-opt.active .model-dd-check { visibility: visible; }
     .spinner {
       display: none;
       width: 18px; height: 18px;

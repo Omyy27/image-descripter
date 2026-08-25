@@ -13,8 +13,13 @@ DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5vl:3b")
 MODEL_META = [
     {"value": "qwen2.5vl:3b", "label": "qwen2.5vl:3b (mejor calidad)"},
     {"value": "gemma3:4b", "label": "gemma3:4b (ligero)"},
+    {"value": "qwen2.5-coder:3b", "label": "qwen2.5-coder:3b (código · sin visión)"},
 ]
 AVAILABLE_MODELS = [m["value"] for m in MODEL_META]
+
+# Modelos de texto dedicados a generar código/mockups (no ven imágenes).
+CODE_MODELS = ["qwen2.5-coder:3b"]
+VISION_MODELS = [m["value"] for m in MODEL_META if m["value"] not in CODE_MODELS]
 
 # Modelo de texto dedicado a generar código/mockups (no ve imágenes).
 MOCKUP_MODEL = os.environ.get("OLLAMA_MOCKUP_MODEL", "qwen2.5-coder:3b")

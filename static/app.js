@@ -528,15 +528,18 @@
     function setModel(value) {
       $('model').value = value;
       $('model-chat').value = value;
+      syncModelDropdowns();
       syncStatModel();
     }
 
     $('model').addEventListener('change', () => {
       $('model-chat').value = $('model').value;
+      syncModelDropdowns();
       syncStatModel();
     });
     $('model-chat').addEventListener('change', () => {
       $('model').value = $('model-chat').value;
+      syncModelDropdowns();
       syncStatModel();
       const chat = currentChat();
       if (chat) {
@@ -577,14 +580,107 @@
     setInterval(refreshStats, 4000);
 
     // ---------- Restaurar al cargar ----------
+    let MODELS = [];
+
+    function modelIcon(m) {
+      return (m.code ? 'ph-code' : 'ph-eye');
+    }
+
+    function modelBadge(m) {
+      const mm = /\((.*)\)/.exec(m.label || '');
+      return mm ? mm[1] : '';
+    }
+
+    function buildDropdown(selectId) {
+      const select = $(selectId);
+      if (!select || !select.parentElement) return;
+      const root = select.parentElement.querySelector('.model-dd');
+      if (!root) return;
+      const labelEl = root.querySelector('.model-dd-label');
+      const menu = root.querySelector('.model-dd-menu');
+      const trigger = root.querySelector('.model-dd-trigger');
+
+      menu.innerHTML = MODELS.map(m => {
+        const badge = modelBadge(m);
+        return '<li role="option" aria-selected="false" class="model-dd-opt" data-value="' + m.value + '">' +
+          '<i class="ph ' + modelIcon(m) + '"></i>' +
+          '<span class="model-dd-name">' + m.value + '</span>' +
+          (badge ? '<span class="model-dd-badge">' + badge + '</span>' : '') +
+          '<i class="ph ph-check model-dd-check"></i>' +
+        '</li>';
+      }).join('');
+
+      function open() {
+        menu.classList.remove('hidden');
+        trigger.setAttribute('aria-expanded', 'true');
+      }
+      function close() {
+        menu.classList.add('hidden');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+      function toggle(e) {
+        e.stopPropagation();
+        menu.classList.contains('hidden') ? open() : close();
+      }
+
+      trigger.addEventListener('click', toggle);
+      trigger.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open();
+        } else if (e.key === 'Escape') {
+          close();
+        }
+      });
+      document.addEventListener('click', (e) => {
+        if (!root.contains(e.target)) close();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+      });
+      menu.addEventListener('click', (e) => {
+        const item = e.target.closest('.model-dd-opt');
+        if (!item) return;
+        select.value = item.dataset.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        close();
+        syncModelDropdowns();
+      });
+    }
+
+    function syncModelDropdowns() {
+      ['model-chat', 'model'].forEach((id) => {
+        const select = $(id);
+        if (!select || !select.parentElement) return;
+        const root = select.parentElement.querySelector('.model-dd');
+        if (!root) return;
+        const labelEl = root.querySelector('.model-dd-label');
+        const menu = root.querySelector('.model-dd-menu');
+        const value = select.value;
+        labelEl.textContent = value;
+        menu.querySelectorAll('.model-dd-opt').forEach((li) => {
+          const active = li.dataset.value === value;
+          li.classList.toggle('active', active);
+          li.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+      });
+    }
+
     async function populateModels() {
       try {
         const res = await fetch('/api/models');
         const data = await res.json();
         if (data.models && data.models.length) {
-          const opts = data.models.map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+          MODELS = data.models.map(m => ({
+            ...m,
+            code: (m.value || '').includes('coder'),
+          }));
+          const opts = MODELS.map(m => `<option value="${m.value}">${m.label}</option>`).join('');
           $('model').innerHTML = opts;
           $('model-chat').innerHTML = opts;
+          buildDropdown('model');
+          buildDropdown('model-chat');
+          syncModelDropdowns();
           return true;
         }
       } catch {}

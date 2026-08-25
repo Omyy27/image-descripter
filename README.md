@@ -4,7 +4,7 @@ Mini app web que **conversa con un modelo de visión local (Ollama)** sobre tus 
 
 ## Características
 
-- **Chat multi-turno** con 2 modelos de visión elegibles desde el header: `qwen2.5vl:3b` (mejor calidad) y `gemma3:4b` (ligero).
+- **Chat multi-turno** con 3 modelos elegibles desde el selector del header: `qwen2.5vl:3b` (mejor calidad), `gemma3:4b` (ligero) y `qwen2.5-coder:3b` (código · sin visión).
 - **Adjunta imágenes en cualquier momento** del chat (se comprimen en el navegador antes de enviarse).
 - **Conversaciones guardadas temporalmente** en `sessionStorage` del navegador (hasta 10, con panel lateral y buscador).
 - **Respuestas con markdown** (listas, código, tablas) y **tiempo de respuesta** del modelo (total + evaluación).
@@ -74,8 +74,8 @@ Pestaña **Mockups** (arriba de la card): una herramienta de codificación IA de
 3. Con **Copiar HTML**, **Descargar .html** o **Abrir en pestaña** te llevas el mockup.
 
 Notas:
-- Requiere el modelo: `ollama pull qwen2.5-coder:3b` (opcional, solo si quieres usar Mockups).
-- Es un modelo de **texto** (no ve imágenes) y **no** aparece en el selector de visión.
+- Requiere el modelo: `ollama pull qwen2.5-coder:3b` (opcional, solo si quieres usar Mockups o el selector).
+- Es un modelo de **texto** (no ve imágenes): si lo eliges en el selector y lo usas con imágenes, la app avisa "Este modelo no ve imágenes".
 - Cámbialo con la variable de entorno `OLLAMA_MOCKUP_MODEL`.
 - Usa **Descargar modelo** del header para liberar su RAM al terminar (libera los dos modelos).
 

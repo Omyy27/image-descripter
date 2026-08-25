@@ -25,9 +25,10 @@ def test_api_models(client):
     assert r.status_code == 200
     data = r.get_json()
     assert "models" in data
-    assert len(data["models"]) >= 2
+    assert len(data["models"]) >= 3
     assert all("value" in m and "label" in m for m in data["models"])
     assert set(AVAILABLE_MODELS) <= {m["value"] for m in data["models"]}
+    assert "qwen2.5-coder:3b" in {m["value"] for m in data["models"]}
 
 
 # --- /api/chat validación ---
@@ -406,3 +407,56 @@ def test_extract_html():
     assert ollama_client.extract_html("```html\n<p>a</p>\n```") == "<p>a</p>"
     assert ollama_client.extract_html("<!DOCTYPE html><p>a</p>") == "<!DOCTYPE html><p>a</p>"
     assert ollama_client.extract_html("```html\n<!DOCTYPE html>\n<p>a</p>\n```") == "<!DOCTYPE html>\n<p>a</p>"
+
+
+# --- guarda de visión (modelo de código no ve imágenes) ---
+
+
+def test_describe_modelo_no_vision(client):
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10)).save(buf, format="PNG")
+    buf.seek(0)
+    r = client.post(
+        "/describe",
+        data={"image": (buf, "x.png"), "model": "qwen2.5-coder:3b"},
+        content_type="multipart/form-data",
+    )
+    assert r.status_code == 400
+    assert "no ve imágenes" in r.get_json()["error"]
+
+
+def test_chat_con_imagen_modelo_no_vision(client):
+    r = client.post(
+        "/api/chat",
+        data={
+            "model": "qwen2.5-coder:3b",
+            "messages": json.dumps([{"role": "user", "content": "x", "images": ["aW1n"]}]),
+        },
+    )
+    assert r.status_code == 400
+    assert "no ve imágenes" in r.get_json()["error"]
+
+
+def test_chat_con_imagen_externa_modelo_no_vision(client):
+    r = client.post(
+        "/api/chat",
+        data={
+            "model": "qwen2.5-coder:3b",
+            "image": "aW1n",
+            "messages": json.dumps([{"role": "user", "content": "x"}]),
+        },
+    )
+    assert r.status_code == 400
+
+
+def test_chat_texto_con_modelo_coder_ok(client, monkeypatch):
+    def fake(image_b64, messages, model="qwen2.5-coder:3b", timeout=300, max_messages=20):
+        return "código", {"total_ms": 1, "eval_ms": 1, "load_ms": 0}
+
+    monkeypatch.setattr(appmod, "chat_image", fake)
+    r = client.post(
+        "/api/chat",
+        data={"model": "qwen2.5-coder:3b", "messages": json.dumps([{"role": "user", "content": "genera código"}])},
+    )
+    assert r.status_code == 200
+    assert r.get_json()["reply"] == "código"

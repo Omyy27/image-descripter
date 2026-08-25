@@ -23,6 +23,7 @@ from config import (
     MODEL_META,
     MOCKUP_MODEL,
     PORT,
+    VISION_MODELS,
 )
 from image_utils import prepare_image
 from ollama_client import (
@@ -72,6 +73,15 @@ def _pick_model(raw: str) -> str:
     return model if model in AVAILABLE_MODELS else DEFAULT_MODEL
 
 
+def _require_vision(model: str) -> str | None:
+    if model not in VISION_MODELS:
+        return (
+            f"El modelo {model} no ve imágenes. "
+            "Usa un modelo de visión: " + ", ".join(VISION_MODELS) + "."
+        )
+    return None
+
+
 def _friendly_error(exc: Exception) -> str:
     if is_oom_error(exc):
         return (
@@ -106,6 +116,10 @@ def describe():
         context = "Describe esta imagen en detalle."
 
     model = _pick_model(request.form.get("model") or "")
+
+    vision_error = _require_vision(model)
+    if vision_error:
+        return jsonify({"error": vision_error}), 400
 
     try:
         image_b64 = prepare_image(file.read())
@@ -148,6 +162,14 @@ def chat():
         return jsonify({"error": "Formato de mensajes inválido."}), 400
 
     image_b64 = (request.form.get("image") or "").strip() or None
+
+    has_images = bool(image_b64) or any(
+        m.get("images") for m in messages
+    )
+    if has_images:
+        vision_error = _require_vision(model)
+        if vision_error:
+            return jsonify({"error": vision_error}), 400
 
     try:
         reply, timing = chat_image(image_b64, messages, model=model)

@@ -105,8 +105,14 @@
       <div class="flex items-center gap-4">
         <label class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-app-panel/50 border border-app-border text-xs text-app-muted cursor-pointer" title="Modelo activo">
           <i class="ph ph-microchip text-emerald-400"></i>
-          <select id="model-chat" class="bg-transparent text-app-text text-xs font-medium focus:outline-none cursor-pointer appearance-none"></select>
-          <i class="ph ph-caret-down text-app-muted"></i>
+          <select id="model-chat" class="hidden"></select>
+          <span class="model-dd model-dd-header">
+            <button type="button" class="model-dd-trigger" aria-haspopup="listbox" aria-expanded="false">
+              <span class="model-dd-label text-app-text">…</span>
+              <i class="ph ph-caret-down text-app-muted"></i>
+            </button>
+            <ul class="model-dd-menu hidden" role="listbox" aria-label="Modelo"></ul>
+          </span>
         </label>
         <div class="flex items-center gap-2 pl-4 border-l border-app-border">
           <span class="relative flex h-2.5 w-2.5">
@@ -167,7 +173,16 @@
               </div>
               <div>
                 <label for="model" class="block text-xs font-medium text-app-muted mb-1.5">Modelo</label>
-                <select id="model" class="w-full bg-app-bg border border-app-border rounded-xl px-4 py-3 text-sm text-app-text focus:outline-none focus:border-app-primary transition-colors cursor-pointer"></select>
+                <div class="relative">
+                  <select id="model" class="hidden"></select>
+                  <span class="model-dd model-dd-form">
+                    <button type="button" class="model-dd-trigger w-full" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="model-dd-label">…</span>
+                      <i class="ph ph-caret-down text-app-muted"></i>
+                    </button>
+                    <ul class="model-dd-menu hidden" role="listbox" aria-label="Modelo"></ul>
+                  </span>
+                </div>
               </div>
               <button id="btn" class="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-app-primary hover:bg-indigo-600 text-white text-sm font-semibold transition-colors shadow-md shadow-indigo-500/20">
                 <span class="spinner"></span>
